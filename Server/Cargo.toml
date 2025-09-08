@@ -18,3 +18,4 @@ walkdir = "2.0"
 sha2 = "0.10"
 urlencoding = "2.0"
 anyhow = "1.0"  # Add this line
+derive_more = "0.99"

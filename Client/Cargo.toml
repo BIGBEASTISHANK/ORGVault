@@ -16,4 +16,4 @@ sha2 = "0.10"
 dirs = "5.0"
 walkdir = "2.0"
 urlencoding = "2.0"
-# Remove log and env_logger since we're using println! instead
+derive_more = "0.99"
