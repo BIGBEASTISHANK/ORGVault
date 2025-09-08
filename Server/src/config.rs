@@ -34,9 +34,10 @@ pub struct ServerConfig {
 pub fn create_default_mac_permissions() -> HashMap<String, MacPermission> {
     let mut permissions = HashMap::new();
     
-    permissions.insert("00:11:22:33:44:55".to_string(), MacPermission {
-        mac_address: "00:11:22:33:44:55".to_string(),
-        username: "Admin".to_string(),
+    // Use your actual server MAC address (eno1 ethernet interface)
+    permissions.insert("24:6a:0e:11:82:96".to_string(), MacPermission {
+        mac_address: "24:6a:0e:11:82:96".to_string(),
+        username: "ServerAdmin".to_string(),
         allowed_folders: vec!["/home/ishank/ORGCenterFolder".to_string()],
         can_read_files: true,
         is_admin: true,
@@ -44,6 +45,7 @@ pub fn create_default_mac_permissions() -> HashMap<String, MacPermission> {
     
     permissions
 }
+
 
 pub fn save_server_config(
     root_path: &str, 

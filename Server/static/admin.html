@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>👑 Secure Vault Admin Panel</title>
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👑 Secure Vault Admin Panel</h1>
+            <p>Manage MAC Address Permissions and Folder Access</p>
+        </div>
+
+        <div class="server-info">
+            <h4>🖥️ Server Information</h4>
+            <div id="server-info">Loading server information...</div>
+        </div>
+
+        <div class="section">
+            <h3>🔍 Server Management</h3>
+            <button class="btn btn-primary" onclick="triggerScan()">📂 Scan Folders</button>
+            <button class="btn btn-primary" onclick="loadFolders()">🔄 Load Available Folders</button>
+            <button class="btn btn-primary" onclick="loadMacPermissions()">👥 Load MAC Permissions</button>
+        </div>
+
+        <div class="section">
+            <h3>📁 Available Folders</h3>
+            <div id="folder-list" class="folder-list">Click "Load Available Folders" to see all folders</div>
+        </div>
+
+        <div class="section">
+            <h3>➕ Add New MAC Permission</h3>
+            <div class="form-group">
+                <label>MAC Address:</label>
+                <input type="text" id="new-mac" placeholder="24:6a:0e:11:82:96">
+            </div>
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" id="new-username" placeholder="User Name">
+            </div>
+            <div class="form-group">
+                <label>Allowed Folders (select from available folders above):</label>
+                <textarea id="new-folders" rows="3" placeholder="Paste folder paths here, separated by commas"></textarea>
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="new-can-read"> Can Read Files
+                </label>
+                <label style="margin-left: 20px;">
+                    <input type="checkbox" id="new-is-admin"> Is Admin
+                </label>
+            </div>
+            <button class="btn btn-success" onclick="addMacPermission()">➕ Add MAC Permission</button>
+        </div>
+
+        <div class="section">
+            <h3>👥 Current MAC Permissions</h3>
+            <div id="mac-list" class="mac-list">Click "Load MAC Permissions" to see current permissions</div>
+        </div>
+    </div>
+
+    <script src="/js/admin.js"></script>
+</body>
+</html>

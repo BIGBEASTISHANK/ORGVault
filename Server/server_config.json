@@ -1,6 +1,6 @@
 {
   "root_path": "/home/ishank/ORGCenterFolder",
-  "last_scan": "2025-09-08T12:36:22.530123769+00:00",
+  "last_scan": "2025-09-08T13:04:42.990057813+00:00",
   "folder_structure": {
     "name": "ORGCenterFolder",
     "path": "/home/ishank/ORGCenterFolder",
@@ -40,9 +40,9 @@
     "content": null
   },
   "mac_permissions": {
-    "00:11:22:33:44:55": {
-      "mac_address": "00:11:22:33:44:55",
-      "username": "Admin",
+    "24:6a:0e:11:82:96": {
+      "mac_address": "24:6a:0e:11:82:96",
+      "username": "ServerAdmin",
       "allowed_folders": [
         "/home/ishank/ORGCenterFolder"
       ],

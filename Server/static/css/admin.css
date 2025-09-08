@@ -1,0 +1,154 @@
+body { 
+    font-family: Arial, sans-serif; 
+    margin: 20px; 
+    background: #f5f5f5; 
+}
+
+.container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    background: white; 
+    padding: 30px; 
+    border-radius: 10px; 
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.header { 
+    text-align: center; 
+    margin-bottom: 30px; 
+    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%); 
+    color: white; 
+    padding: 20px; 
+    border-radius: 8px; 
+}
+
+.server-info { 
+    background: #e8f4fd; 
+    padding: 15px; 
+    border-radius: 8px; 
+    margin-bottom: 20px; 
+    border-left: 4px solid #007bff; 
+}
+
+.section { 
+    margin: 30px 0; 
+    padding: 20px; 
+    border: 1px solid #ddd; 
+    border-radius: 8px; 
+    background: #f8f9fa; 
+}
+
+.btn { 
+    padding: 10px 20px; 
+    margin: 5px; 
+    border: none; 
+    border-radius: 5px; 
+    cursor: pointer; 
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary { 
+    background: #007bff; 
+    color: white; 
+}
+
+.btn-primary:hover { 
+    background: #0056b3; 
+    transform: translateY(-1px);
+}
+
+.btn-success { 
+    background: #28a745; 
+    color: white; 
+}
+
+.btn-success:hover { 
+    background: #218838; 
+    transform: translateY(-1px);
+}
+
+.btn-danger { 
+    background: #dc3545; 
+    color: white; 
+}
+
+.btn-danger:hover { 
+    background: #c82333; 
+    transform: translateY(-1px);
+}
+
+input, textarea { 
+    width: 100%; 
+    padding: 8px; 
+    margin: 5px 0; 
+    border: 1px solid #ddd; 
+    border-radius: 4px; 
+    font-size: 14px;
+}
+
+.form-group { 
+    margin: 15px 0; 
+}
+
+.form-group label { 
+    display: block; 
+    font-weight: bold; 
+    margin-bottom: 5px; 
+}
+
+.folder-list { 
+    max-height: 200px; 
+    overflow-y: auto; 
+    border: 1px solid #ddd; 
+    padding: 10px; 
+    background: white; 
+    border-radius: 6px; 
+}
+
+.mac-list { 
+    max-height: 400px; 
+    overflow-y: auto; 
+}
+
+.mac-item { 
+    background: white; 
+    margin: 10px 0; 
+    padding: 15px; 
+    border-radius: 5px; 
+    border: 1px solid #dee2e6; 
+    position: relative; 
+}
+
+.folder-checkbox { 
+    padding: 5px; 
+    border-bottom: 1px solid #eee; 
+    cursor: pointer; 
+    transition: background 0.2s ease;
+}
+
+.folder-checkbox:hover { 
+    background: #f0f0f0; 
+}
+
+.folder-checkbox::before {
+    content: "📁 ";
+    margin-right: 8px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .container {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    .section {
+        padding: 15px;
+    }
+    
+    .btn {
+        width: 100%;
+        margin: 5px 0;
+    }
+}

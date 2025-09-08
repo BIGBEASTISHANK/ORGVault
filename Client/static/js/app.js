@@ -20,6 +20,21 @@ function updateMacDisplay(mac) {
     currentMac = mac;
 }
 
+async function showMacInfo() {
+    try {
+        const response = await fetch('/api/mac');
+        const data = await response.json();
+        
+        if (data.error) {
+            alert(`MAC Detection Error: ${data.error}`);
+        } else {
+            alert(`Your MAC Address: ${data.mac_address}\nDetected at: ${new Date(data.timestamp).toLocaleString()}`);
+        }
+    } catch (error) {
+        alert('Failed to get MAC info: ' + error.message);
+    }
+}
+
 async function loadFolders() {
     const container = document.getElementById('folder-structure');
     container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading folder structure...</div>';
@@ -30,7 +45,12 @@ async function loadFolders() {
         
         if (data.error) {
             updateStatus(false, data.error);
-            container.innerHTML = `<div class="error">❌ ${data.error}<br><small>MAC: ${data.mac_address || 'Unknown'}</small></div>`;
+            container.innerHTML = `
+                <div class="error">
+                    ❌ ${data.error}<br>
+                    <small>MAC: ${data.mac_address || 'Unknown'}</small>
+                    ${data.message ? `<br><small>${data.message}</small>` : ''}
+                </div>`;
             if (data.mac_address) updateMacDisplay(data.mac_address);
             return;
         }
@@ -107,33 +127,12 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-async function triggerScan() {
-    try {
-        const response = await fetch('/api/scan');
-        const data = await response.json();
-        alert(data.message || 'Scan completed');
-        loadFolders();
-    } catch (error) {
-        alert('Failed to trigger scan: ' + error.message);
-    }
-}
-
-async function getStatus() {
-    try {
-        const response = await fetch('/api/status');
-        const data = await response.json();
-        alert(data.status || 'No status available');
-    } catch (error) {
-        alert('Failed to get status: ' + error.message);
-    }
-}
-
 // Load folders on page load
 window.onload = function() {
     loadFolders();
 };
 
-// Auto-refresh every 30 seconds
+// Auto-refresh every 30 seconds if connected
 setInterval(() => {
     if (currentStatus === 'connected') {
         loadFolders();
