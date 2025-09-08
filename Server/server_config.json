@@ -1,18 +1,10 @@
 {
   "mac_permissions": {
-    "c0:3e:ba:26:00:50": {
-      "mac_address": "c0:3e:ba:26:00:50",
-      "username": "testpc",
-      "allowed_folders": [
-        "/home/ishank/ORGCenterFolder/Development Team"
-      ],
-      "can_read_files": true,
-      "is_admin": false
-    },
     "24:6a:0e:11:82:96": {
-      "mac_address": "24:6a:0e:11:82:96",
+      "mac_address": "24:6a:0r:11:82:96",
       "username": "Server Admin",
       "allowed_folders": [
+        "/home/ishank/ORGCenterFolder/Marketing Team",
         "/home/ishank/ORGCenterFolder/Design Team",
         "/home/ishank/ORGCenterFolder/Development Team"
       ],
@@ -21,6 +13,7 @@
     }
   },
   "available_folders": [
+    "/home/ishank/ORGCenterFolder/Marketing Team",
     "/home/ishank/ORGCenterFolder/Design Team",
     "/home/ishank/ORGCenterFolder/Development Team"
   ],
@@ -29,8 +22,17 @@
     "path": "/home/ishank/ORGCenterFolder",
     "is_dir": true,
     "size": null,
-    "modified": "SystemTime { tv_sec: 1757353783, tv_nsec: 653276328 }",
+    "modified": "SystemTime { tv_sec: 1757362895, tv_nsec: 739284526 }",
     "children": [
+      {
+        "name": "Marketing Team",
+        "path": "/home/ishank/ORGCenterFolder/Marketing Team",
+        "is_dir": true,
+        "size": null,
+        "modified": "SystemTime { tv_sec: 1757362895, tv_nsec: 739284526 }",
+        "children": null,
+        "content": null
+      },
       {
         "name": "Design Team",
         "path": "/home/ishank/ORGCenterFolder/Design Team",
@@ -55,14 +57,14 @@
         "path": "/home/ishank/ORGCenterFolder/Development Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757357524, tv_nsec: 955380957 }",
+        "modified": "SystemTime { tv_sec: 1757362754, tv_nsec: 165543665 }",
         "children": [
           {
             "name": "secret.txt",
             "path": "/home/ishank/ORGCenterFolder/Development Team/secret.txt",
             "is_dir": false,
             "size": 1001,
-            "modified": "SystemTime { tv_sec: 1757357524, tv_nsec: 955380957 }",
+            "modified": "SystemTime { tv_sec: 1757362754, tv_nsec: 165543665 }",
             "children": null,
             "content": null
           }
@@ -72,6 +74,6 @@
     ],
     "content": null
   },
-  "last_scan": "2025-09-08T19:03:33.708138721+00:00",
+  "last_scan": "2025-09-08T20:33:27.400872153+00:00",
   "encryption_key": "askjkldjfslkasjdfkl"
 }
