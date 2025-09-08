@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 use anyhow::Result;
-use log::info;
 
 mod simple_sync;
 mod encryption;
@@ -10,8 +9,7 @@ use simple_sync::SimpleSyncClient;
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::init();
-    info!("🚀 Starting Simple Sync Client");
+    println!("🚀 Starting Simple Sync Client");
 
     let sync_folder = dirs::document_dir()
         .unwrap_or_else(|| PathBuf::from("."))
