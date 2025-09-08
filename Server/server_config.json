@@ -1,0 +1,58 @@
+{
+  "root_path": "/home/ishank/ORGCenterFolder",
+  "last_scan": "2025-09-08T12:36:22.530123769+00:00",
+  "folder_structure": {
+    "name": "ORGCenterFolder",
+    "path": "/home/ishank/ORGCenterFolder",
+    "is_dir": true,
+    "size": null,
+    "modified": "SystemTime { tv_sec: 1757333331, tv_nsec: 660914347 }",
+    "children": [
+      {
+        "name": "Design Team",
+        "path": "/home/ishank/ORGCenterFolder/Design Team",
+        "is_dir": true,
+        "size": null,
+        "modified": "SystemTime { tv_sec: 1757324199, tv_nsec: 550776101 }",
+        "children": [],
+        "content": null
+      },
+      {
+        "name": "Development Team",
+        "path": "/home/ishank/ORGCenterFolder/Development Team",
+        "is_dir": true,
+        "size": null,
+        "modified": "SystemTime { tv_sec: 1757334974, tv_nsec: 107198496 }",
+        "children": [
+          {
+            "name": "test.html",
+            "path": "/home/ishank/ORGCenterFolder/Development Team/test.html",
+            "is_dir": false,
+            "size": 0,
+            "modified": "SystemTime { tv_sec: 1757334974, tv_nsec: 107198496 }",
+            "children": null,
+            "content": ""
+          }
+        ],
+        "content": null
+      }
+    ],
+    "content": null
+  },
+  "mac_permissions": {
+    "00:11:22:33:44:55": {
+      "mac_address": "00:11:22:33:44:55",
+      "username": "Admin",
+      "allowed_folders": [
+        "/home/ishank/ORGCenterFolder"
+      ],
+      "can_read_files": true,
+      "is_admin": true
+    }
+  },
+  "available_folders": [
+    "/home/ishank/ORGCenterFolder",
+    "/home/ishank/ORGCenterFolder/Design Team",
+    "/home/ishank/ORGCenterFolder/Development Team"
+  ]
+}

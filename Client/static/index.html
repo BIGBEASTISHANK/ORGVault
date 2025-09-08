@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔒 Secure Data Vault</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Secure Data Vault</h1>
+            <p>Authenticated Access • Server: 192.168.1.2:7878</p>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" onclick="loadFolders()">🔄 Refresh</button>
+            <div class="status-info">
+                <div class="mac-display" id="mac-display">MAC: Detecting...</div>
+                <div class="status-indicator" id="status">🔴 Connecting...</div>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div class="folder-panel">
+                <h3>📂 Your Accessible Folders</h3>
+                <div id="folder-structure" class="folder-tree">
+                    <div class="loading">Loading your folder structure...</div>
+                </div>
+            </div>
+            <div class="file-viewer">
+                <div class="file-header">
+                    <h3>📄 File Viewer</h3>
+                </div>
+                <div id="file-content" class="file-content">
+                    Select a file from the folder tree to view its contents.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
