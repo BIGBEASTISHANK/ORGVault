@@ -1,12 +1,38 @@
 {
-  "root_path": "/home/ishank/ORGCenterFolder",
-  "last_scan": "2025-09-08T14:07:35.350033554+00:00",
+  "mac_permissions": {
+    "24:6a:0e:11:82:96": {
+      "mac_address": "24:6a:0e:11:82:96",
+      "username": "Server Admin",
+      "allowed_folders": [
+        "/home/ishank/ORGCenterFolder",
+        "/home/ishank/ORGCenterFolder/Design Team",
+        "/home/ishank/ORGCenterFolder/Development Team"
+      ],
+      "can_read_files": true,
+      "is_admin": true
+    },
+    "f8:fe:5e:6b:69:fd": {
+      "mac_address": "f8:fe:5e:6b:69:fd",
+      "username": "HB",
+      "allowed_folders": [
+        "/home/ishank/ORGCenterFolder/Design Team",
+        "/home/ishank/ORGCenterFolder/Development Team"
+      ],
+      "can_read_files": true,
+      "is_admin": false
+    }
+  },
+  "available_folders": [
+    "/home/ishank/ORGCenterFolder",
+    "/home/ishank/ORGCenterFolder/Design Team",
+    "/home/ishank/ORGCenterFolder/Development Team"
+  ],
   "folder_structure": {
     "name": "ORGCenterFolder",
     "path": "/home/ishank/ORGCenterFolder",
     "is_dir": true,
     "size": null,
-    "modified": "SystemTime { tv_sec: 1757333331, tv_nsec: 660914347 }",
+    "modified": "SystemTime { tv_sec: 1757340596, tv_nsec: 141958484 }",
     "children": [
       {
         "name": "Design Team",
@@ -15,6 +41,15 @@
         "size": null,
         "modified": "SystemTime { tv_sec: 1757324199, tv_nsec: 550776101 }",
         "children": [],
+        "content": null
+      },
+      {
+        "name": "problem_statements.pdf",
+        "path": "/home/ishank/ORGCenterFolder/problem_statements.pdf",
+        "is_dir": false,
+        "size": 338372,
+        "modified": "SystemTime { tv_sec: 1757340596, tv_nsec: 144958515 }",
+        "children": null,
         "content": null
       },
       {
@@ -39,30 +74,6 @@
     ],
     "content": null
   },
-  "mac_permissions": {
-    "f8:fe:5e:6b:69:fd": {
-      "mac_address": "f8:fe:5e:6b:69:fd",
-      "username": "HB",
-      "allowed_folders": [
-        "/home/ishank/ORGCenterFolder/Design Team",
-        "/home/ishank/ORGCenterFolder/Development Team"
-      ],
-      "can_read_files": true,
-      "is_admin": false
-    },
-    "24:6a:0e:11:82:96": {
-      "mac_address": "24:6a:0e:11:82:96",
-      "username": "ServerAdmin",
-      "allowed_folders": [
-        "/home/ishank/ORGCenterFolder"
-      ],
-      "can_read_files": true,
-      "is_admin": true
-    }
-  },
-  "available_folders": [
-    "/home/ishank/ORGCenterFolder",
-    "/home/ishank/ORGCenterFolder/Design Team",
-    "/home/ishank/ORGCenterFolder/Development Team"
-  ]
+  "last_scan": "2025-09-08T14:22:30.179597515+00:00",
+  "encryption_key": "shared-vault-key-2025"
 }

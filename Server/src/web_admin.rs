@@ -9,6 +9,7 @@ use std::path::PathBuf;
 use crate::config::load_server_config;
 use crate::admin::handle_admin_command;
 use crate::folder_scanner::scan_and_save_org_folders;
+use crate::auth::{is_admin_mac, get_user_permissions};
 use std::process::Command;
 
 #[derive(Deserialize, Debug)]
@@ -65,32 +66,34 @@ fn get_server_mac_address() -> String {
                 }
             }
         }
-        
-        if let Ok(output) = Command::new("cat").arg("/sys/class/net/wlo1/address").output() {
-            if output.status.success() {
-                if let Ok(mac) = String::from_utf8(output.stdout) {
-                    let mac = mac.trim().to_string();
-                    if !mac.is_empty() && mac != "00:00:00:00:00:00" {
-                        return mac;
-                    }
-                }
-            }
-        }
     }
-    
     "00:11:22:33:44:55".to_string()
 }
 
 fn check_folder_permission(mac_address: &str, folder_path: &str) -> Result<bool, std::io::Error> {
-    let config = load_server_config("server_config.json")?;
-    
-    if let Some(permission) = config.mac_permissions.get(mac_address) {
-        let has_permission = permission.allowed_folders.iter().any(|allowed| {
-            folder_path.starts_with(allowed) || allowed.starts_with(folder_path)
-        });
-        Ok(has_permission)
-    } else {
-        Ok(false)
+    match get_user_permissions(mac_address) {
+        Ok(permission) => {
+            if permission.is_admin {
+                println!("👑 Admin access granted to folder: {}", folder_path);
+                Ok(true)
+            } else {
+                let has_permission = permission.allowed_folders.iter().any(|allowed| {
+                    folder_path.starts_with(allowed) || allowed.starts_with(folder_path)
+                });
+                
+                if has_permission {
+                    println!("✅ User access granted to folder: {}", folder_path);
+                } else {
+                    println!("❌ User access denied to folder: {}", folder_path);
+                }
+                
+                Ok(has_permission)
+            }
+        }
+        Err(_) => {
+            println!("❌ Permission check failed for MAC: {}", mac_address);
+            Ok(false)
+        }
     }
 }
 
@@ -173,8 +176,14 @@ async fn list_files(query: web::Query<FileListQuery>) -> Result<HttpResponse> {
     let folder_path = &query.folder;
     let mac_address = &query.mac;
     
+    println!("📂 File list request: {} from MAC: {}", folder_path, mac_address);
+    
     match check_folder_permission(mac_address, folder_path) {
-        Ok(true) => {},
+        Ok(true) => {
+            if is_admin_mac(mac_address) {
+                println!("👑 Admin listing files in: {}", folder_path);
+            }
+        },
         Ok(false) => {
             return Ok(HttpResponse::Forbidden().json(serde_json::json!({
                 "error": "Access denied to this folder"
@@ -227,8 +236,14 @@ async fn download_file(
     
     let file_path = PathBuf::from(folder).join(&filename);
     
+    println!("📥 Download request: {} from MAC: {}", filename, mac_address);
+    
     match check_folder_permission(mac_address, folder) {
-        Ok(true) => {},
+        Ok(true) => {
+            if is_admin_mac(mac_address) {
+                println!("👑 Admin downloading: {}", filename);
+            }
+        },
         Ok(false) => {
             return Ok(HttpResponse::Forbidden().json(serde_json::json!({
                 "error": "Access denied"
@@ -264,8 +279,14 @@ async fn upload_file(
     let mac_address = &query.mac;
     let folder = &query.folder;
     
+    println!("📤 Upload request to {} from MAC: {}", folder, mac_address);
+    
     match check_folder_permission(mac_address, folder) {
-        Ok(true) => {},
+        Ok(true) => {
+            if is_admin_mac(mac_address) {
+                println!("👑 Admin uploading to: {}", folder);
+            }
+        },
         Ok(false) => {
             return Ok(HttpResponse::Forbidden().json(serde_json::json!({
                 "error": "Access denied to upload to this folder"
@@ -281,10 +302,9 @@ async fn upload_file(
     while let Some(mut field) = payload.next().await {
         let field = field?;
         
-        // Clone the content disposition to avoid borrow conflicts
         let content_disposition = field.content_disposition().clone();
         let filename = if let Some(name) = content_disposition.get_filename() {
-            name.to_string() // Clone to owned String
+            name.to_string()
         } else {
             return Ok(HttpResponse::BadRequest().json(serde_json::json!({
                 "error": "No filename provided"
@@ -296,13 +316,14 @@ async fn upload_file(
         let mut file = fs::File::create(&file_path)
             .map_err(|e| actix_web::error::ErrorInternalServerError(format!("Cannot create file: {}", e)))?;
         
-        // Now we can use field mutably without borrow conflicts
         let mut field = field;
         while let Some(chunk) = field.next().await {
             let data = chunk?;
             file.write_all(&data)
                 .map_err(|e| actix_web::error::ErrorInternalServerError(format!("Cannot write to file: {}", e)))?;
         }
+        
+        println!("✅ File uploaded: {} by MAC: {}", filename, mac_address);
         
         return Ok(HttpResponse::Ok().json(serde_json::json!({
             "message": format!("File {} uploaded successfully", filename)
@@ -334,10 +355,61 @@ pub fn start_admin_server() -> std::io::Result<()> {
                 .service(list_files)
                 .service(download_file)
                 .service(upload_file)
+                .service(delete_file_from_server)
                 .service(Files::new("/", "static").index_file("admin.html"))
         })
         .bind("192.168.1.2:8080")?
         .run()
         .await
     })
+}
+
+#[derive(Deserialize)]
+struct FileDeleteRequest {
+    file_path: String,
+    mac: String,
+}
+
+#[post("/api/delete")]
+async fn delete_file_from_server(req: web::Json<FileDeleteRequest>) -> Result<HttpResponse> {
+    let file_path = &req.file_path;
+    let mac_address = &req.mac;
+    
+    println!("🗑️ DELETE request: {} from MAC: {}", file_path, mac_address);
+    
+    // Check permissions
+    match check_folder_permission(mac_address, "/home/ishank/ORGCenterFolder") {
+        Ok(true) => {
+            if is_admin_mac(mac_address) {
+                println!("👑 Admin deleting: {}", file_path);
+            }
+        },
+        Ok(false) => {
+            return Ok(HttpResponse::Forbidden().json(serde_json::json!({
+                "error": "Access denied"
+            })));
+        },
+        Err(_) => {
+            return Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": "Permission check failed"
+            })));
+        }
+    }
+    
+    // Delete file from server
+    let full_path = PathBuf::from("/home/ishank/ORGCenterFolder").join(file_path);
+    match fs::remove_file(&full_path) {
+        Ok(_) => {
+            println!("✅ File deleted from server: {}", file_path);
+            Ok(HttpResponse::Ok().json(serde_json::json!({
+                "message": format!("File {} deleted successfully", file_path)
+            })))
+        }
+        Err(e) => {
+            println!("❌ Failed to delete file {}: {}", file_path, e);
+            Ok(HttpResponse::InternalServerError().json(serde_json::json!({
+                "error": format!("Failed to delete file: {}", e)
+            })))
+        }
+    }
 }

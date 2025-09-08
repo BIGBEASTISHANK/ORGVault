@@ -1,6 +1,16 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
+use chrono::{DateTime, Utc};
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct MacPermission {
+    pub mac_address: String,
+    pub username: String,
+    pub allowed_folders: Vec<String>,
+    pub can_read_files: bool,
+    pub is_admin: bool,
+}
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct FolderEntry {
@@ -13,105 +23,81 @@ pub struct FolderEntry {
     pub content: Option<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct MacPermission {
-    pub mac_address: String,
-    pub username: String,
-    pub allowed_folders: Vec<String>,
-    pub can_read_files: bool,
-    pub is_admin: bool,
+// Add this function for the serde default
+fn default_encryption_key() -> String {
+    "askjkldjfslkasjdfkl".to_string()
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ServerConfig {
-    pub root_path: String,
-    pub last_scan: String,
-    pub folder_structure: FolderEntry,
     pub mac_permissions: HashMap<String, MacPermission>,
     pub available_folders: Vec<String>,
+    pub folder_structure: FolderEntry,
+    pub last_scan: String,
+    #[serde(default = "default_encryption_key")]
+    pub encryption_key: String,
 }
 
-pub fn create_default_mac_permissions() -> HashMap<String, MacPermission> {
-    let mut permissions = HashMap::new();
-    
-    // Use your actual server MAC address (eno1 ethernet interface)
-    permissions.insert("24:6a:0e:11:82:96".to_string(), MacPermission {
-        mac_address: "24:6a:0e:11:82:96".to_string(),
-        username: "ServerAdmin".to_string(),
-        allowed_folders: vec!["/home/ishank/ORGCenterFolder".to_string()],
-        can_read_files: true,
-        is_admin: true,
-    });
-    
-    permissions
+impl Default for ServerConfig {
+    fn default() -> Self {
+        ServerConfig {
+            mac_permissions: HashMap::new(),
+            available_folders: vec![],
+            folder_structure: FolderEntry {
+                name: "Secure Vault".to_string(),
+                path: "/".to_string(),
+                is_dir: true,
+                size: None,
+                modified: None,
+                children: Some(vec![]),
+                content: None,
+            },
+            last_scan: Utc::now().to_rfc3339(),
+            encryption_key: "askjkldjfslkasjdfkl".to_string(),
+        }
+    }
 }
 
-
-pub fn save_server_config(
-    root_path: &str, 
-    folder_structure: FolderEntry, 
-    config_path: &str
-) -> std::io::Result<()> {
-    let (mac_permissions, _available_folders) = match load_server_config(config_path) {
-        Ok(existing_config) => (existing_config.mac_permissions, existing_config.available_folders),
-        Err(_) => (create_default_mac_permissions(), Vec::new()),
-    };
-    
-    let new_available_folders = extract_all_folder_paths(&folder_structure);
-    
-    let config = ServerConfig {
-        root_path: root_path.to_string(),
-        last_scan: chrono::Utc::now().to_rfc3339(),
-        folder_structure,
-        mac_permissions,
-        available_folders: new_available_folders,
-    };
-    
-    let json = serde_json::to_string_pretty(&config)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-    
-    fs::write(config_path, json)?;
-    Ok(())
-}
-
-pub fn load_server_config(config_path: &str) -> Result<ServerConfig, std::io::Error> {
-    let contents = fs::read_to_string(config_path)?;
-    let config: ServerConfig = serde_json::from_str(&contents)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-    Ok(config)
-}
-
-fn extract_all_folder_paths(folder: &FolderEntry) -> Vec<String> {
-    let mut paths = Vec::new();
-    
-    if folder.is_dir {
-        paths.push(folder.path.clone());
-        
-        if let Some(ref children) = folder.children {
-            for child in children {
-                paths.extend(extract_all_folder_paths(child));
+pub fn load_server_config(file_path: &str) -> Result<ServerConfig, std::io::Error> {
+    match fs::read_to_string(file_path) {
+        Ok(contents) => {
+            serde_json::from_str(&contents).map_err(|e| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, e)
+            })
+        }
+        Err(e) => {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                let default_config = ServerConfig::default();
+                save_server_config(file_path, &default_config)?;
+                Ok(default_config)
+            } else {
+                Err(e)
             }
         }
     }
-    
-    paths
 }
 
-pub fn count_items(entry: &FolderEntry) -> (usize, usize) {
-    if entry.is_dir {
-        let mut folders = 1;
-        let mut files = 0;
-        
-        if let Some(ref children) = entry.children {
+pub fn save_server_config(file_path: &str, config: &ServerConfig) -> Result<(), std::io::Error> {
+    let json = serde_json::to_string_pretty(config)?;
+    fs::write(file_path, json)
+}
+
+pub fn count_items(folder: &FolderEntry) -> (usize, usize) {
+    let mut folders = 0;
+    let mut files = 0;
+    
+    if folder.is_dir {
+        folders += 1;
+        if let Some(children) = &folder.children {
             for child in children {
                 let (child_folders, child_files) = count_items(child);
                 folders += child_folders;
                 files += child_files;
             }
         }
-        
-        (folders, files)
     } else {
-        (0, 1)
+        files += 1;
     }
+    
+    (folders, files)
 }

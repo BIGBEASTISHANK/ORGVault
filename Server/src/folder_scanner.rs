@@ -1,84 +1,82 @@
-use crate::config::{FolderEntry, save_server_config, count_items};
+use crate::config::{FolderEntry, ServerConfig, save_server_config, load_server_config};
+use walkdir::WalkDir;
 use std::fs;
-use std::path::Path;
+use chrono::Utc;
 
-pub fn scan_org_folders<P: AsRef<Path>>(path: P) -> Result<FolderEntry, std::io::Error> {
-    let path = path.as_ref();
-    let name = path.file_name()
-        .unwrap_or_else(|| path.as_os_str())
-        .to_string_lossy()
-        .into_owned();
+pub fn scan_and_save_org_folders(org_folder_path: &str, config_file: &str) -> Result<(), Box<dyn std::error::Error>> {
+    println!("🔍 Scanning folder: {}", org_folder_path);
     
-    let metadata = fs::metadata(path)?;
-    let is_dir = metadata.is_dir();
+    let root_entry = scan_folder_recursive(org_folder_path)?;
+    let available_folders = collect_folder_paths(org_folder_path);
     
-    let size = if !is_dir { Some(metadata.len()) } else { None };
-    let modified = metadata.modified()
-        .ok()
-        .map(|time| format!("{:?}", time));
-
-    let content = if !is_dir && metadata.len() < 1_048_576 {
-        match fs::read_to_string(path) {
-            Ok(file_content) => Some(file_content),
-            Err(_) => None,
-        }
-    } else {
-        None
+    let mut config = match load_server_config(config_file) {
+        Ok(existing_config) => existing_config,
+        Err(_) => ServerConfig::default(),
     };
+    
+    config.folder_structure = root_entry;
+    config.available_folders = available_folders;
+    config.last_scan = Utc::now().to_rfc3339();
+    
+    save_server_config(config_file, &config)?;
+    
+    println!("✅ Folder scan completed and saved to {}", config_file);
+    Ok(())
+}
 
-    let children = if is_dir {
-        let mut entries = Vec::new();
+fn scan_folder_recursive(folder_path: &str) -> Result<FolderEntry, Box<dyn std::error::Error>> {
+    let metadata = fs::metadata(folder_path)?;
+    let folder_name = std::path::Path::new(folder_path)
+        .file_name()
+        .unwrap_or_else(|| std::ffi::OsStr::new("root"))
+        .to_string_lossy()
+        .to_string();
+    
+    let mut entry = FolderEntry {
+        name: folder_name,
+        path: folder_path.to_string(),
+        is_dir: metadata.is_dir(),
+        size: if metadata.is_file() { Some(metadata.len()) } else { None },
+        modified: Some(format!("{:?}", metadata.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH))),
+        children: None,
+        content: None,
+    };
+    
+    if metadata.is_dir() {
+        let mut children = Vec::new();
         
-        match fs::read_dir(path) {
+        match fs::read_dir(folder_path) {
             Ok(dir_entries) => {
-                for entry in dir_entries {
-                    match entry {
-                        Ok(entry) => {
-                            let child_path = entry.path();
-                            match scan_org_folders(child_path) {
-                                Ok(child_entry) => entries.push(child_entry),
-                                Err(e) => eprintln!("Error scanning {}: {}", entry.path().display(), e),
-                            }
+                for dir_entry in dir_entries {
+                    if let Ok(dir_entry) = dir_entry {
+                        let child_path = dir_entry.path().to_string_lossy().to_string();
+                        if let Ok(child_entry) = scan_folder_recursive(&child_path) {
+                            children.push(child_entry);
                         }
-                        Err(e) => eprintln!("Error reading directory entry: {}", e),
                     }
                 }
             }
-            Err(e) => eprintln!("Error reading directory {}: {}", path.display(), e),
+            Err(e) => {
+                eprintln!("Warning: Could not read directory {}: {}", folder_path, e);
+            }
         }
         
-        Some(entries)
-    } else {
-        None
-    };
-
-    Ok(FolderEntry {
-        name,
-        path: path.to_string_lossy().into_owned(),
-        is_dir,
-        size,
-        modified,
-        children,
-        content,
-    })
-}
-
-pub fn scan_and_save_org_folders(root_path: &str, config_path: &str) -> Result<(), std::io::Error> {
-    println!("🔍 Scanning ORG folders at: {}", root_path);
-    
-    if !Path::new(root_path).exists() {
-        return Err(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            format!("Path does not exist: {}", root_path)
-        ));
+        entry.children = Some(children);
     }
     
-    let folder_structure = scan_org_folders(root_path)?;
-    let (folders, files) = count_items(&folder_structure);
-    println!("📁 Found {} folders and {} files", folders, files);
+    Ok(entry)
+}
+
+fn collect_folder_paths(root_path: &str) -> Vec<String> {
+    let mut folders = Vec::new();
     
-    save_server_config(root_path, folder_structure, config_path)?;
-    println!("💾 Configuration saved to: {}", config_path);
+    for entry in WalkDir::new(root_path).min_depth(1).max_depth(3) {
+        if let Ok(entry) = entry {
+            if entry.file_type().is_dir() {
+                folders.push(entry.path().to_string_lossy().to_string());
+            }
+        }
+    }
     
-    Ok(())
+    folders
 }
