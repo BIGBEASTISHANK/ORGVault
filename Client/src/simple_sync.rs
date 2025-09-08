@@ -4,6 +4,7 @@ use tokio::time::{Duration, interval};
 use anyhow::Result;
 use chrono::Utc;
 use walkdir::WalkDir;
+use std::collections::HashSet;
 
 use crate::metadata::{SyncMetadata, FileRecord, calculate_checksum};
 use crate::encryption::Encryptor;
@@ -53,7 +54,7 @@ impl SimpleSyncClient {
     }
 
     pub async fn start(&mut self) -> Result<()> {
-        println!("🚀 Starting simple file synchronization");
+        println!("🚀 Starting bidirectional file synchronization");
         
         // Test server connection first
         if let Err(e) = self.test_server_connection().await {
@@ -67,13 +68,16 @@ impl SimpleSyncClient {
         // Upload any local files
         self.upload_local_files().await?;
         
+        // Handle bidirectional deletions
+        self.handle_deletions().await?;
+        
         // Start continuous sync loop
         let mut sync_interval = interval(Duration::from_secs(30));
         
         loop {
             sync_interval.tick().await;
             
-            println!("🔄 Running sync cycle...");
+            println!("\n🔄 Running sync cycle...");
             
             // Download new/changed files from server
             if let Err(e) = self.download_all_files().await {
@@ -85,10 +89,10 @@ impl SimpleSyncClient {
                 println!("❌ Upload sync failed: {}", e);
             }
             
-            // Handle deletions (simple approach)
-            // if let Err(e) = self.handle_deletions().await {
-            //     println!("❌ Deletion sync failed: {}", e);
-            // }
+            // Handle bidirectional deletions
+            if let Err(e) = self.handle_deletions().await {
+                println!("❌ Deletion sync failed: {}", e);
+            }
             
             // Save metadata
             self.metadata.last_sync = Some(Utc::now());
@@ -138,7 +142,6 @@ impl SimpleSyncClient {
         
         let response_text = response.text().await?;
         println!("📋 Server response length: {} chars", response_text.len());
-        println!("📋 Raw response: {}", response_text);
         
         let server_items: Vec<serde_json::Value> = match serde_json::from_str(&response_text) {
             Ok(items) => {
@@ -155,12 +158,10 @@ impl SimpleSyncClient {
         println!("📁 Found {} items in root folder", server_items.len());
         
         for (i, item) in server_items.iter().enumerate() {
-            println!("📄 Item {}: {:?}", i + 1, item);
-            
             if let Some(name) = item["name"].as_str() {
                 let is_file = item["is_file"].as_bool().unwrap_or(false);
                 
-                println!("📂 Processing item: {} (is_file: {})", name, is_file);
+                println!("📂 Processing item {}: {} (is_file: {})", i + 1, name, is_file);
                 
                 if is_file {
                     // Handle files in root folder
@@ -213,7 +214,6 @@ impl SimpleSyncClient {
         
         let response_text = response.text().await?;
         println!("📋 Folder '{}' response length: {} chars", folder_name, response_text.len());
-        println!("📋 Folder '{}' raw response: {}", folder_name, response_text);
         
         let folder_items: Vec<serde_json::Value> = match serde_json::from_str(&response_text) {
             Ok(items) => {
@@ -229,34 +229,31 @@ impl SimpleSyncClient {
         println!("📁 Team folder '{}' contains {} items", folder_name, folder_items.len());
         
         for (i, item) in folder_items.iter().enumerate() {
-            println!("   📄 Folder item {}: {:?}", i + 1, item);
-            
             if let Some(file_name) = item["name"].as_str() {
                 let is_file = item["is_file"].as_bool().unwrap_or(false);
                 
-                println!("   📂 Processing folder item: {} (is_file: {})", file_name, is_file);
+                println!("   📂 Processing folder item {}: {} (is_file: {})", i + 1, file_name, is_file);
                 
                 if is_file && !file_name.starts_with('.') {
                     let relative_path = format!("{}/{}", folder_name, file_name);
                     let local_path = self.sync_folder.join(&relative_path);
                     
                     println!("   📥 Found file to download: {}", relative_path);
-                    println!("   💾 Local path will be: {:?}", local_path);
                     
                     // Check if file needs downloading
                     let should_download = if local_path.exists() {
                         if let Ok(local_metadata) = fs::metadata(&local_path).await {
                             if let Some(server_size) = item["size"].as_u64() {
                                 let size_different = local_metadata.len() != server_size;
-                                println!("   📊 Size comparison for {}: local={}, server={}, different={}", 
-                                        relative_path, local_metadata.len(), server_size, size_different);
+                                if size_different {
+                                    println!("   📊 Size difference for {}: local={}, server={}", 
+                                            relative_path, local_metadata.len(), server_size);
+                                }
                                 size_different
                             } else {
-                                println!("   ⚠️ No server size available for {}", relative_path);
                                 false
                             }
                         } else {
-                            println!("   📄 Cannot read local metadata for {}", relative_path);
                             true
                         }
                     } else {
@@ -289,7 +286,7 @@ impl SimpleSyncClient {
                                   urlencoding::encode(relative_path),
                                   self.metadata.client_id);
         
-        println!("   📥 Starting download: {} from {}", relative_path, download_url);
+        println!("   📥 Starting download: {}", relative_path);
         
         let response = self.http_client.get(&download_url).send().await?;
         
@@ -300,18 +297,22 @@ impl SimpleSyncClient {
         
         println!("   ✅ Download response OK for: {}", relative_path);
         
-        // Get all bytes at once (simplified approach)
         let content = response.bytes().await?;
         println!("   📦 Downloaded {} bytes for: {}", content.len(), relative_path);
         
-        // Try to decrypt - if it fails, use raw data
+        // Try to decrypt - handle both encrypted and unencrypted files
         let final_data = match self.encryptor.decrypt(&content) {
             Ok(decrypted) => {
                 println!("   🔓 File decrypted successfully: {}", relative_path);
                 decrypted
             }
-            Err(e) => {
-                println!("   📄 Using raw data (decryption failed: {}): {}", e, relative_path);
+            Err(_) => {
+                // Check if it looks like it might be encrypted data or plain text
+                if content.len() > 12 {
+                    println!("   📄 Using raw data (likely unencrypted): {}", relative_path);
+                } else {
+                    println!("   ⚠️ Small file, using as-is: {}", relative_path);
+                }
                 content.to_vec()
             }
         };
@@ -326,7 +327,7 @@ impl SimpleSyncClient {
         
         // Write file to disk
         fs::write(&local_path, &final_data).await?;
-        println!("   💾 Saved file: {} ({} bytes) to {:?}", relative_path, final_data.len(), local_path);
+        println!("   💾 Saved file: {} ({} bytes)", relative_path, final_data.len());
         
         // Update metadata
         let file_record = FileRecord {
@@ -414,14 +415,155 @@ impl SimpleSyncClient {
     }
 
     async fn handle_deletions(&mut self) -> Result<()> {
-    println!("🗑️ Checking for files to delete...");
-    
-    // Skip deletion for now - it's removing valid files
-    println!("⏭️ Skipping deletion check to prevent removing valid files");
-    
-    Ok(())
-}
+        println!("🗑️ Starting bidirectional deletion check...");
+        
+        // Get complete server file structure
+        let mut all_server_files = HashSet::new();
+        if let Err(e) = self.collect_all_server_files(&mut all_server_files).await {
+            println!("❌ Failed to collect server files: {}", e);
+            return Ok(());
+        }
+        
+        // Get all local files
+        let mut all_local_files = HashSet::new();
+        self.collect_all_local_files(&mut all_local_files);
+        
+        println!("📊 Deletion comparison:");
+        println!("   📄 Server files: {}", all_server_files.len());
+        println!("   📄 Local files: {}", all_local_files.len());
+        
+        // Handle server deletions (files that exist locally but not on server)
+        let files_to_delete_locally: Vec<_> = all_local_files.difference(&all_server_files).collect();
+        for file_path in files_to_delete_locally {
+            // Only delete if we have metadata (meaning we got it from server originally)
+            if self.metadata.get_file_record(file_path).is_some() {
+                let local_path = self.sync_folder.join(file_path);
+                match fs::remove_file(&local_path).await {
+                    Ok(_) => {
+                        println!("🗑️ Deleted locally (removed from server): {}", file_path);
+                        self.metadata.remove_file_record(file_path);
+                    }
+                    Err(e) => {
+                        println!("❌ Failed to delete local file {}: {}", file_path, e);
+                    }
+                }
+            }
+        }
+        
+        // Handle client deletions (files that exist on server but not locally)
+        let files_to_delete_on_server: Vec<_> = all_server_files.difference(&all_local_files).collect();
+        for file_path in files_to_delete_on_server {
+            // Only delete from server if we have metadata (meaning we uploaded it)
+            if self.metadata.get_file_record(file_path).is_some() {
+                println!("🗑️ Deleting from server (removed locally): {}", file_path);
+                if let Err(e) = self.delete_file_on_server(file_path).await {
+                    println!("❌ Failed to delete server file {}: {}", file_path, e);
+                } else {
+                    println!("✅ Deleted from server: {}", file_path);
+                    self.metadata.remove_file_record(file_path);
+                }
+            }
+        }
+        
+        Ok(())
+    }
 
+    async fn collect_all_server_files(&self, server_files: &mut HashSet<String>) -> Result<()> {
+        // Get root folder contents
+        let url = format!("{}/api/files?folder=/home/ishank/ORGCenterFolder&mac={}", 
+                         self.metadata.server_url, self.metadata.client_id);
+        
+        let response = self.http_client.get(&url).send().await?;
+        if !response.status().is_success() {
+            return Ok(());
+        }
+        
+        let response_text = response.text().await?;
+        let root_items: Vec<serde_json::Value> = serde_json::from_str(&response_text)?;
+        
+        for item in root_items {
+            if let Some(name) = item["name"].as_str() {
+                let is_file = item["is_file"].as_bool().unwrap_or(false);
+                
+                if is_file {
+                    server_files.insert(name.to_string());
+                } else {
+                    // Explore subfolder
+                    if let Err(e) = self.collect_server_folder_files(name, server_files).await {
+                        println!("❌ Failed to collect files from folder {}: {}", name, e);
+                    }
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    async fn collect_server_folder_files(&self, folder_name: &str, server_files: &mut HashSet<String>) -> Result<()> {
+        let folder_url = format!("{}/api/files?folder=/home/ishank/ORGCenterFolder/{}&mac={}", 
+                                self.metadata.server_url, 
+                                urlencoding::encode(folder_name),
+                                self.metadata.client_id);
+        
+        let response = self.http_client.get(&folder_url).send().await?;
+        if !response.status().is_success() {
+            return Ok(());
+        }
+        
+        let response_text = response.text().await?;
+        let folder_items: Vec<serde_json::Value> = serde_json::from_str(&response_text)?;
+        
+        for item in folder_items {
+            if let Some(file_name) = item["name"].as_str() {
+                if item["is_file"].as_bool() == Some(true) {
+                    let relative_path = format!("{}/{}", folder_name, file_name);
+                    server_files.insert(relative_path);
+                }
+            }
+        }
+        
+        Ok(())
+    }
+
+    fn collect_all_local_files(&self, local_files: &mut HashSet<String>) {
+        for entry in WalkDir::new(&self.sync_folder) {
+            if let Ok(entry) = entry {
+                if entry.file_type().is_file() {
+                    if let Some(filename) = entry.file_name().to_str() {
+                        if filename.starts_with('.') {
+                            continue; // Skip hidden files
+                        }
+                        
+                        if let Ok(relative_path) = entry.path().strip_prefix(&self.sync_folder) {
+                            let path_str = relative_path.to_string_lossy().to_string();
+                            local_files.insert(path_str);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    async fn delete_file_on_server(&self, file_path: &str) -> Result<()> {
+        let delete_url = format!("{}/api/delete-file", self.metadata.server_url);
+        
+        let delete_request = serde_json::json!({
+            "file_path": file_path,
+            "mac": self.metadata.client_id
+        });
+        
+        let response = self.http_client
+            .post(&delete_url)
+            .json(&delete_request)
+            .send()
+            .await?;
+        
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("Server delete failed: {}", response.status()))
+        }
+    }
 }
 
 fn get_mac_address() -> Result<String> {

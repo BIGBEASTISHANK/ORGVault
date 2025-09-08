@@ -19,6 +19,12 @@ struct FileListQuery {
 }
 
 #[derive(Deserialize)]
+struct DeleteFileRequest {
+    file_path: String,
+    mac: String,
+}
+
+#[derive(Deserialize)]
 struct FileDownloadQuery {
     folder: String,
     mac: String,
@@ -724,7 +730,7 @@ async fn upload_file_enhanced(
     })))
 }
 
-#[post("/api/delete")]
+#[post("/api/delete-file")]
 async fn delete_file_from_server(req: web::Json<FileDeleteRequest>) -> Result<HttpResponse> {
     let file_path = &req.file_path;
     let mac_address = &req.mac;
