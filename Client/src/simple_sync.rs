@@ -857,7 +857,7 @@ fn platform_specific_mac_address() -> Result<String> {
     {
         println!("🔍 Trying Unix MAC detection methods...");
         
-        let interfaces = ["eno1", "eth0", "wlo1", "wlan0", "en0", "en1"];
+        let interfaces = ["eno1", "eth0", "wlo1", "wlan0", "en0", "en1", "enp1s0"];
         for interface in &interfaces {
             let path = format!("/sys/class/net/{}/address", interface);
             if let Ok(output) = Command::new("cat").arg(&path).output() {

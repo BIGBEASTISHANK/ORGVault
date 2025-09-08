@@ -1,12 +1,11 @@
 {
   "mac_permissions": {
     "24:6a:0e:11:82:96": {
-      "mac_address": "24:6a:0r:11:82:96",
+      "mac_address": "24:6a:0e:11:82:96",
       "username": "Server Admin",
       "allowed_folders": [
         "/home/ishank/ORGCenterFolder/Marketing Team",
         "/home/ishank/ORGCenterFolder/Design Team",
-        "/home/ishank/ORGCenterFolder/RND Team",
         "/home/ishank/ORGCenterFolder/Development Team"
       ],
       "can_read_files": true,
@@ -16,7 +15,15 @@
       "mac_address": "c4:c6:e6:14:5e:7a",
       "username": "hbsingh",
       "allowed_folders": [
-        "/home/ishank/ORGCenterFolder/RND Team",
+        "/home/ishank/ORGCenterFolder/Development Team"
+      ],
+      "can_read_files": true,
+      "is_admin": false
+    },
+    "c0:3e:ba:26:00:50": {
+      "mac_address": "c0:3e:ba:26:00:50",
+      "username": "testpc",
+      "allowed_folders": [
         "/home/ishank/ORGCenterFolder/Development Team"
       ],
       "can_read_files": true,
@@ -26,7 +33,6 @@
   "available_folders": [
     "/home/ishank/ORGCenterFolder/Marketing Team",
     "/home/ishank/ORGCenterFolder/Design Team",
-    "/home/ishank/ORGCenterFolder/RND Team",
     "/home/ishank/ORGCenterFolder/Development Team"
   ],
   "folder_structure": {
@@ -34,14 +40,14 @@
     "path": "/home/ishank/ORGCenterFolder",
     "is_dir": true,
     "size": null,
-    "modified": "SystemTime { tv_sec: 1757365744, tv_nsec: 920328208 }",
+    "modified": "SystemTime { tv_sec: 1757370736, tv_nsec: 262409363 }",
     "children": [
       {
         "name": "Marketing Team",
         "path": "/home/ishank/ORGCenterFolder/Marketing Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757363761, tv_nsec: 147066502 }",
+        "modified": "SystemTime { tv_sec: 1757369031, tv_nsec: 598316947 }",
         "children": [
           {
             "name": "emptyTestFile.txt",
@@ -49,6 +55,15 @@
             "is_dir": false,
             "size": 0,
             "modified": "SystemTime { tv_sec: 1757363761, tv_nsec: 147066502 }",
+            "children": null,
+            "content": null
+          },
+          {
+            "name": "secret.txt",
+            "path": "/home/ishank/ORGCenterFolder/Marketing Team/secret.txt",
+            "is_dir": false,
+            "size": 1001,
+            "modified": "SystemTime { tv_sec: 1757369031, tv_nsec: 598316947 }",
             "children": null,
             "content": null
           }
@@ -60,7 +75,7 @@
         "path": "/home/ishank/ORGCenterFolder/Design Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757363753, tv_nsec: 702046531 }",
+        "modified": "SystemTime { tv_sec: 1757369090, tv_nsec: 671847703 }",
         "children": [
           {
             "name": "emptyTestFile.txt",
@@ -75,11 +90,11 @@
         "content": null
       },
       {
-        "name": "RND Team",
-        "path": "/home/ishank/ORGCenterFolder/RND Team",
-        "is_dir": true,
-        "size": null,
-        "modified": "SystemTime { tv_sec: 1757365744, tv_nsec: 920328208 }",
+        "name": "Development Team\\problem_statements.pdf",
+        "path": "/home/ishank/ORGCenterFolder/Development Team\\problem_statements.pdf",
+        "is_dir": false,
+        "size": 338356,
+        "modified": "SystemTime { tv_sec: 1757370736, tv_nsec: 271409409 }",
         "children": null,
         "content": null
       },
@@ -88,13 +103,23 @@
         "path": "/home/ishank/ORGCenterFolder/Development Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757365691, tv_nsec: 460352124 }",
-        "children": null,
+        "modified": "SystemTime { tv_sec: 1757369187, tv_nsec: 503840573 }",
+        "children": [
+          {
+            "name": "problem_statements.pdf",
+            "path": "/home/ishank/ORGCenterFolder/Development Team/problem_statements.pdf",
+            "is_dir": false,
+            "size": 338356,
+            "modified": "SystemTime { tv_sec: 1757369187, tv_nsec: 505840579 }",
+            "children": null,
+            "content": null
+          }
+        ],
         "content": null
       }
     ],
     "content": null
   },
-  "last_scan": "2025-09-08T21:09:21.106157637+00:00",
+  "last_scan": "2025-09-08T22:38:58.020717680+00:00",
   "encryption_key": "askjkldjfslkasjdfkl"
 }
