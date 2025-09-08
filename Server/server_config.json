@@ -1,6 +1,6 @@
 {
   "root_path": "/home/ishank/ORGCenterFolder",
-  "last_scan": "2025-09-08T13:04:42.990057813+00:00",
+  "last_scan": "2025-09-08T13:24:01.344149471+00:00",
   "folder_structure": {
     "name": "ORGCenterFolder",
     "path": "/home/ishank/ORGCenterFolder",
@@ -22,16 +22,16 @@
         "path": "/home/ishank/ORGCenterFolder/Development Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757334974, tv_nsec: 107198496 }",
+        "modified": "SystemTime { tv_sec: 1757336840, tv_nsec: 690716103 }",
         "children": [
           {
             "name": "test.html",
             "path": "/home/ishank/ORGCenterFolder/Development Team/test.html",
             "is_dir": false,
-            "size": 0,
-            "modified": "SystemTime { tv_sec: 1757334974, tv_nsec: 107198496 }",
+            "size": 3,
+            "modified": "SystemTime { tv_sec: 1757336840, tv_nsec: 687716094 }",
             "children": null,
-            "content": ""
+            "content": "hi\n"
           }
         ],
         "content": null
@@ -48,6 +48,15 @@
       ],
       "can_read_files": true,
       "is_admin": true
+    },
+    "f8:fe:5e:6b:69:fd": {
+      "mac_address": "f8:fe:5e:6b:69:fd",
+      "username": "HB Singh",
+      "allowed_folders": [
+        "/home/ishank/ORGCenterFolder/Design Team"
+      ],
+      "can_read_files": true,
+      "is_admin": false
     }
   },
   "available_folders": [

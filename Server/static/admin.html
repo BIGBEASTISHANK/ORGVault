@@ -32,27 +32,48 @@
 
         <div class="section">
             <h3>➕ Add New MAC Permission</h3>
-            <div class="form-group">
-                <label>MAC Address:</label>
-                <input type="text" id="new-mac" placeholder="24:6a:0e:11:82:96">
-            </div>
-            <div class="form-group">
-                <label>Username:</label>
-                <input type="text" id="new-username" placeholder="User Name">
-            </div>
-            <div class="form-group">
-                <label>Allowed Folders (select from available folders above):</label>
-                <textarea id="new-folders" rows="3" placeholder="Paste folder paths here, separated by commas"></textarea>
-            </div>
-            <div class="form-group">
-                <label>
-                    <input type="checkbox" id="new-can-read"> Can Read Files
-                </label>
-                <label style="margin-left: 20px;">
-                    <input type="checkbox" id="new-is-admin"> Is Admin
-                </label>
-            </div>
-            <button class="btn btn-success" onclick="addMacPermission()">➕ Add MAC Permission</button>
+            <form id="mac-form" onsubmit="addMacPermission(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="new-mac">MAC Address:</label>
+                        <input type="text" id="new-mac" placeholder="00:00:00:00:00:00" required>
+                        <small>Enter full MAC address with colons</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-username">Username:</label>
+                        <input type="text" id="new-username" placeholder="username" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="folder-dropdown">Select Allowed Folders:</label>
+                    <div class="dropdown-container">
+                        <button type="button" class="dropdown-btn" onclick="toggleDropdown()">
+                            <span id="selected-folders-text">Select folders...</span>
+                            <span class="dropdown-arrow">▼</span>
+                        </button>
+                        <div id="folder-dropdown" class="dropdown-content">
+                            <div class="dropdown-item">
+                                <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+                                <label for="select-all"><strong>Select All</strong></label>
+                            </div>
+                            <div id="folder-checkboxes"></div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="selected-folders" name="selected-folders">
+                </div>
+                
+                <div class="form-group checkbox-group">
+                    <label>
+                        <input type="checkbox" id="new-can-read" checked> Can Read Files
+                    </label>
+                    <label>
+                        <input type="checkbox" id="new-is-admin"> Is Admin
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-success">➕ Add MAC Permission</button>
+            </form>
         </div>
 
         <div class="section">

@@ -6,7 +6,8 @@ pub fn handle_admin_command(mac_address: &str, command: &str) -> String {
         return "❌ Access denied: Admin privileges required".to_string();
     }
 
-    let parts: Vec<&str> = command.split(':').collect();
+    // Parse command - use different delimiter to avoid MAC address conflicts
+    let parts: Vec<&str> = command.split("|||").collect(); // Use ||| as delimiter instead of :
     
     match parts[0] {
         "admin_list_folders" => list_all_folders(),
@@ -15,21 +16,21 @@ pub fn handle_admin_command(mac_address: &str, command: &str) -> String {
             if parts.len() >= 6 {
                 add_mac_permission(parts[1], parts[2], parts[3], parts[4] == "true", parts[5] == "true")
             } else {
-                "❌ Usage: admin_add_mac:MAC:USERNAME:FOLDERS:CAN_READ:IS_ADMIN".to_string()
+                "❌ Usage: admin_add_mac|||MAC|||USERNAME|||FOLDERS|||CAN_READ|||IS_ADMIN".to_string()
             }
         }
         "admin_remove_mac" => {
             if parts.len() >= 2 {
                 remove_mac_permission(parts[1])
             } else {
-                "❌ Usage: admin_remove_mac:MAC_ADDRESS".to_string()
+                "❌ Usage: admin_remove_mac|||MAC_ADDRESS".to_string()
             }
         }
         "admin_update_mac" => {
             if parts.len() >= 6 {
                 update_mac_permission(parts[1], parts[2], parts[3], parts[4] == "true", parts[5] == "true")
             } else {
-                "❌ Usage: admin_update_mac:MAC:USERNAME:FOLDERS:CAN_READ:IS_ADMIN".to_string()
+                "❌ Usage: admin_update_mac|||MAC|||USERNAME|||FOLDERS|||CAN_READ|||IS_ADMIN".to_string()
             }
         }
         _ => "❌ Unknown admin command".to_string(),

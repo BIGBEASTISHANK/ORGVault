@@ -6,12 +6,12 @@ use crate::admin::handle_admin_command;
 use crate::folder_scanner::scan_and_save_org_folders;
 use std::process::Command;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct MacRequest {
     mac_address: String,
     username: String,
     allowed_folders: Vec<String>,
-    can_read_files: bool,
+    can_read_files: bool,  // Note: field name matches JSON exactly
     is_admin: bool,
 }
 
@@ -20,11 +20,9 @@ struct RemoveMacRequest {
     mac_address: String,
 }
 
-// Function to get the server's actual MAC address
 fn get_server_mac_address() -> String {
     #[cfg(target_os = "linux")]
     {
-        // Try to get MAC from primary ethernet interface
         if let Ok(output) = Command::new("cat").arg("/sys/class/net/eno1/address").output() {
             if output.status.success() {
                 if let Ok(mac) = String::from_utf8(output.stdout) {
@@ -37,7 +35,6 @@ fn get_server_mac_address() -> String {
             }
         }
         
-        // Try WiFi interface as fallback
         if let Ok(output) = Command::new("cat").arg("/sys/class/net/wlo1/address").output() {
             if output.status.success() {
                 if let Ok(mac) = String::from_utf8(output.stdout) {
@@ -51,7 +48,6 @@ fn get_server_mac_address() -> String {
         }
     }
     
-    // Fallback - but this shouldn't happen now
     println!("⚠️  Using fallback MAC address");
     "00:11:22:33:44:55".to_string()
 }
@@ -88,16 +84,36 @@ async fn get_mac_permissions() -> Result<HttpResponse> {
 #[post("/api/mac/add")]
 async fn add_mac_permission(mac_req: web::Json<MacRequest>) -> Result<HttpResponse> {
     let server_mac = get_server_mac_address();
-    let folders_str = mac_req.allowed_folders.join(",");
+    let req_data = mac_req.into_inner();
+    
+    // Debug print to see what we received
+    println!("🔍 Received MAC request:");
+    println!("  MAC: {}", req_data.mac_address);
+    println!("  Username: {}", req_data.username);
+    println!("  Folders: {:?}", req_data.allowed_folders);
+    println!("  Can Read: {}", req_data.can_read_files);
+    println!("  Is Admin: {}", req_data.is_admin);
+    
+    // Validate MAC address format
+    if req_data.mac_address.len() != 17 {
+        return Ok(HttpResponse::BadRequest().json(serde_json::json!({
+            "message": format!("❌ Invalid MAC address format. Expected 17 characters, got {}", req_data.mac_address.len())
+        })));
+    }
+    
+    let folders_str = req_data.allowed_folders.join(",");
+    
+    // Use ||| as delimiter to avoid conflicts with MAC address colons
     let command = format!(
-        "admin_add_mac:{}:{}:{}:{}:{}",
-        mac_req.mac_address,
-        mac_req.username,
+        "admin_add_mac|||{}|||{}|||{}|||{}|||{}",
+        req_data.mac_address,
+        req_data.username,
         folders_str,
-        mac_req.can_read_files,
-        mac_req.is_admin
+        req_data.can_read_files,
+        req_data.is_admin
     );
     
+    println!("🔧 Executing command: {}", command);
     let result = handle_admin_command(&server_mac, &command);
     
     Ok(HttpResponse::Ok().json(serde_json::json!({
@@ -108,13 +124,14 @@ async fn add_mac_permission(mac_req: web::Json<MacRequest>) -> Result<HttpRespon
 #[post("/api/mac/remove")]
 async fn remove_mac_permission(mac_req: web::Json<RemoveMacRequest>) -> Result<HttpResponse> {
     let server_mac = get_server_mac_address();
-    let command = format!("admin_remove_mac:{}", mac_req.mac_address);
+    let command = format!("admin_remove_mac|||{}", mac_req.mac_address);
     let result = handle_admin_command(&server_mac, &command);
     
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "message": result
     })))
 }
+
 
 #[post("/api/scan")]
 async fn trigger_scan() -> Result<HttpResponse> {
