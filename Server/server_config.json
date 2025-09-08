@@ -1,5 +1,14 @@
 {
   "mac_permissions": {
+    "c0:3e:ba:26:00:50": {
+      "mac_address": "c0:3e:ba:26:00:50",
+      "username": "testpc",
+      "allowed_folders": [
+        "/home/ishank/ORGCenterFolder/Development Team"
+      ],
+      "can_read_files": true,
+      "is_admin": false
+    },
     "24:6a:0e:11:82:96": {
       "mac_address": "24:6a:0e:11:82:96",
       "username": "Server Admin",
