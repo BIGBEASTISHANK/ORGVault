@@ -12,7 +12,7 @@ impl Encryptor {
     pub fn new(password: &str) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(password.as_bytes());
-        hasher.update(b"secure-vault-salt");
+        hasher.update(b"secure-vault-salt-2025");
         let key_bytes = hasher.finalize();
         let key = Key::<Aes256Gcm>::from_slice(&key_bytes);
         let cipher = Aes256Gcm::new(key);

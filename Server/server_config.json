@@ -4,26 +4,14 @@
       "mac_address": "24:6a:0e:11:82:96",
       "username": "Server Admin",
       "allowed_folders": [
-        "/home/ishank/ORGCenterFolder",
         "/home/ishank/ORGCenterFolder/Design Team",
         "/home/ishank/ORGCenterFolder/Development Team"
       ],
       "can_read_files": true,
       "is_admin": true
-    },
-    "f8:fe:5e:6b:69:fd": {
-      "mac_address": "f8:fe:5e:6b:69:fd",
-      "username": "HB",
-      "allowed_folders": [
-        "/home/ishank/ORGCenterFolder/Design Team",
-        "/home/ishank/ORGCenterFolder/Development Team"
-      ],
-      "can_read_files": true,
-      "is_admin": false
     }
   },
   "available_folders": [
-    "/home/ishank/ORGCenterFolder",
     "/home/ishank/ORGCenterFolder/Design Team",
     "/home/ishank/ORGCenterFolder/Development Team"
   ],
@@ -32,24 +20,25 @@
     "path": "/home/ishank/ORGCenterFolder",
     "is_dir": true,
     "size": null,
-    "modified": "SystemTime { tv_sec: 1757340596, tv_nsec: 141958484 }",
+    "modified": "SystemTime { tv_sec: 1757353783, tv_nsec: 653276328 }",
     "children": [
       {
         "name": "Design Team",
         "path": "/home/ishank/ORGCenterFolder/Design Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757324199, tv_nsec: 550776101 }",
-        "children": [],
-        "content": null
-      },
-      {
-        "name": "problem_statements.pdf",
-        "path": "/home/ishank/ORGCenterFolder/problem_statements.pdf",
-        "is_dir": false,
-        "size": 338372,
-        "modified": "SystemTime { tv_sec: 1757340596, tv_nsec: 144958515 }",
-        "children": null,
+        "modified": "SystemTime { tv_sec: 1757343658, tv_nsec: 938336562 }",
+        "children": [
+          {
+            "name": "test.html",
+            "path": "/home/ishank/ORGCenterFolder/Design Team/test.html",
+            "is_dir": false,
+            "size": 28,
+            "modified": "SystemTime { tv_sec: 1757343643, tv_nsec: 325200721 }",
+            "children": null,
+            "content": null
+          }
+        ],
         "content": null
       },
       {
@@ -57,16 +46,16 @@
         "path": "/home/ishank/ORGCenterFolder/Development Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757336840, tv_nsec: 690716103 }",
+        "modified": "SystemTime { tv_sec: 1757343255, tv_nsec: 745774447 }",
         "children": [
           {
             "name": "test.html",
             "path": "/home/ishank/ORGCenterFolder/Development Team/test.html",
             "is_dir": false,
-            "size": 3,
-            "modified": "SystemTime { tv_sec: 1757336840, tv_nsec: 687716094 }",
+            "size": 28,
+            "modified": "SystemTime { tv_sec: 1757343643, tv_nsec: 325200721 }",
             "children": null,
-            "content": "hi\n"
+            "content": null
           }
         ],
         "content": null
@@ -74,6 +63,6 @@
     ],
     "content": null
   },
-  "last_scan": "2025-09-08T14:22:30.179597515+00:00",
-  "encryption_key": "shared-vault-key-2025"
+  "last_scan": "2025-09-08T18:10:06.491444319+00:00",
+  "encryption_key": "askjkldjfslkasjdfkl"
 }

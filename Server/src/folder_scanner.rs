@@ -1,82 +1,174 @@
-use crate::config::{FolderEntry, ServerConfig, save_server_config, load_server_config};
-use walkdir::WalkDir;
 use std::fs;
+use std::path::Path;
+use serde::{Serialize, Deserialize};
 use chrono::Utc;
+use crate::config::{save_server_config, load_server_config};
 
-pub fn scan_and_save_org_folders(org_folder_path: &str, config_file: &str) -> Result<(), Box<dyn std::error::Error>> {
-    println!("🔍 Scanning folder: {}", org_folder_path);
-    
-    let root_entry = scan_folder_recursive(org_folder_path)?;
-    let available_folders = collect_folder_paths(org_folder_path);
-    
-    let mut config = match load_server_config(config_file) {
-        Ok(existing_config) => existing_config,
-        Err(_) => ServerConfig::default(),
-    };
-    
-    config.folder_structure = root_entry;
-    config.available_folders = available_folders;
-    config.last_scan = Utc::now().to_rfc3339();
-    
-    save_server_config(config_file, &config)?;
-    
-    println!("✅ Folder scan completed and saved to {}", config_file);
-    Ok(())
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct FolderNode {
+    pub name: String,
+    pub path: String,
+    pub is_dir: bool,
+    pub size: Option<u64>,
+    pub modified: Option<String>,
+    pub children: Vec<FolderNode>,
+    pub content: Option<String>,
 }
 
-fn scan_folder_recursive(folder_path: &str) -> Result<FolderEntry, Box<dyn std::error::Error>> {
-    let metadata = fs::metadata(folder_path)?;
-    let folder_name = std::path::Path::new(folder_path)
-        .file_name()
+pub fn scan_and_save_org_folders(org_folder_path: &str, config_path: &str) -> Result<(), Box<dyn std::error::Error>> {
+    println!("\n╔═══════════════════════════════════════════╗");
+    println!("║           📁 FOLDER SCANNER STARTED        ║");
+    println!("╠═══════════════════════════════════════════╣");
+    println!("║ Scanning: {:<31} ║", org_folder_path);
+    println!("║ Config:   {:<31} ║", config_path);
+    println!("╚═══════════════════════════════════════════╝\n");
+    
+    // Load existing config or create new
+    let mut config = load_server_config(config_path).unwrap_or_default();
+    
+    // Clear existing folder data
+    config.available_folders.clear();
+    
+    // Scan the ORGCenterFolder
+    let org_path = Path::new(org_folder_path);
+    
+    if !org_path.exists() {
+        println!("❌ ERROR: ORGCenterFolder does not exist: {}", org_folder_path);
+        return Err(format!("ORGCenterFolder not found: {}", org_folder_path).into());
+    }
+    
+    println!("📂 SCANNING SUBDIRECTORIES:");
+    println!("─────────────────────────────────────────");
+    
+    // Get direct subdirectories (team folders)
+    let mut team_folders = Vec::new();
+    
+    match fs::read_dir(org_path) {
+        Ok(entries) => {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let path = entry.path();
+                    if path.is_dir() {
+                        let folder_name = entry.file_name().to_string_lossy().to_string();
+                        
+                        println!("📁 Found team folder: {}", folder_name);
+                        
+                        // Add to available folders (full path)
+                        config.available_folders.push(path.to_string_lossy().to_string());
+                        team_folders.push(folder_name);
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            println!("❌ ERROR reading directory: {}", e);
+            return Err(format!("Cannot read ORGCenterFolder: {}", e).into());
+        }
+    }
+    
+    println!("─────────────────────────────────────────");
+    println!("📊 SCAN RESULTS:");
+    println!("   📁 Team folders found: {}", team_folders.len());
+    for (i, folder) in team_folders.iter().enumerate() {
+        println!("   {}. {}", i + 1, folder);
+    }
+    println!();
+    
+    // Build complete folder structure
+    println!("🏗️ BUILDING FOLDER STRUCTURE:");
+    if let Some(folder_tree) = build_folder_tree(org_path) {
+        // Convert FolderNode to FolderEntry format expected by config
+        config.folder_structure = convert_folder_node_to_entry(folder_tree);
+        println!("✅ Folder structure built successfully");
+    } else {
+        println!("❌ Failed to build folder structure");
+        return Err("Failed to build folder structure".into());
+    }
+
+    println!("👑 SETTING ADMIN PERMISSIONS:");
+    println!("─────────────────────────────────────────");
+    
+    for (mac, permission) in config.mac_permissions.iter_mut() {
+        if permission.is_admin {
+            println!("   📁 Granting admin {} access to all {} folders", permission.username, config.available_folders.len());
+            
+            // Give admin access to all discovered folders
+            permission.allowed_folders = config.available_folders.clone();
+            
+            for (i, folder) in config.available_folders.iter().enumerate() {
+                println!("      {}. {}", i + 1, folder);
+            }
+        }
+    }
+    
+    // Update timestamp as string
+    config.last_scan = Utc::now().to_rfc3339();
+    
+    // Save updated config (fix argument order)
+    match save_server_config(config_path, &config) {
+        Ok(_) => {
+            println!("✅ Config saved successfully");
+            println!("\n╔═══════════════════════════════════════════╗");
+            println!("║         📁 FOLDER SCAN COMPLETED          ║");
+            println!("╠═══════════════════════════════════════════╣");
+            println!("║ Total folders: {:<27} ║", config.available_folders.len());
+            println!("║ Last scan:     {:<27} ║", config.last_scan);
+            println!("╚═══════════════════════════════════════════╝\n");
+            Ok(())
+        }
+        Err(e) => {
+            println!("❌ ERROR saving config: {}", e);
+            Err(format!("Failed to save config: {}", e).into())
+        }
+    }
+}
+
+fn build_folder_tree(path: &Path) -> Option<FolderNode> {
+    let metadata = fs::metadata(path).ok()?;
+    let is_dir = metadata.is_dir();
+    let name = path.file_name()
         .unwrap_or_else(|| std::ffi::OsStr::new("root"))
         .to_string_lossy()
         .to_string();
     
-    let mut entry = FolderEntry {
-        name: folder_name,
-        path: folder_path.to_string(),
-        is_dir: metadata.is_dir(),
-        size: if metadata.is_file() { Some(metadata.len()) } else { None },
-        modified: Some(format!("{:?}", metadata.modified().unwrap_or(std::time::SystemTime::UNIX_EPOCH))),
-        children: None,
-        content: None,
-    };
+    let mut children = Vec::new();
     
-    if metadata.is_dir() {
-        let mut children = Vec::new();
-        
-        match fs::read_dir(folder_path) {
-            Ok(dir_entries) => {
-                for dir_entry in dir_entries {
-                    if let Ok(dir_entry) = dir_entry {
-                        let child_path = dir_entry.path().to_string_lossy().to_string();
-                        if let Ok(child_entry) = scan_folder_recursive(&child_path) {
-                            children.push(child_entry);
-                        }
+    if is_dir {
+        if let Ok(entries) = fs::read_dir(path) {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    let child_path = entry.path();
+                    if let Some(child_node) = build_folder_tree(&child_path) {
+                        children.push(child_node);
                     }
                 }
             }
-            Err(e) => {
-                eprintln!("Warning: Could not read directory {}: {}", folder_path, e);
-            }
         }
-        
-        entry.children = Some(children);
     }
     
-    Ok(entry)
+    Some(FolderNode {
+        name,
+        path: path.to_string_lossy().to_string(),
+        is_dir,
+        size: if is_dir { None } else { Some(metadata.len()) },
+        modified: metadata.modified().ok().map(|t| format!("{:?}", t)),
+        children,
+        content: None,
+    })
 }
 
-fn collect_folder_paths(root_path: &str) -> Vec<String> {
-    let mut folders = Vec::new();
+fn convert_folder_node_to_entry(node: FolderNode) -> crate::config::FolderEntry {
+    let children_vec: Vec<crate::config::FolderEntry> = node.children.into_iter()
+        .map(convert_folder_node_to_entry)
+        .collect();
     
-    for entry in WalkDir::new(root_path).min_depth(1).max_depth(3) {
-        if let Ok(entry) = entry {
-            if entry.file_type().is_dir() {
-                folders.push(entry.path().to_string_lossy().to_string());
-            }
-        }
+    crate::config::FolderEntry {
+        name: node.name,
+        path: node.path,
+        is_dir: node.is_dir,
+        size: node.size,
+        modified: node.modified,
+        children: if children_vec.is_empty() { None } else { Some(children_vec) },
+        content: node.content,
     }
-    
-    folders
 }
