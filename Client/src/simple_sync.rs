@@ -70,7 +70,7 @@ impl SimpleSyncClient {
     }
 
     pub async fn start(&mut self) -> Result<()> {
-        println!("🚀 Starting bidirectional file synchronization");
+        println!("🚀 Starting file synchronization (DOWNLOAD + UPLOAD ONLY)");
         
         // Test server connection first with enhanced error handling
         if let Err(e) = self.test_server_connection().await {
@@ -94,16 +94,13 @@ impl SimpleSyncClient {
         // Upload any local files
         self.upload_local_files().await?;
         
-        // Handle bidirectional deletions
-        self.handle_deletions().await?;
-        
         // Start continuous sync loop
         let mut sync_interval = interval(Duration::from_secs(30));
         
         loop {
             sync_interval.tick().await;
             
-            println!("\n🔄 Running sync cycle...");
+            println!("\n🔄 Running sync cycle (DOWNLOAD + UPLOAD ONLY)...");
             
             // Download new/changed files from server
             if let Err(e) = self.download_all_files().await {
@@ -123,22 +120,11 @@ impl SimpleSyncClient {
                 }
             }
             
-            // Handle bidirectional deletions
-            if let Err(e) = self.handle_deletions().await {
-                if e.to_string().contains("connect") || e.to_string().contains("timeout") {
-                    println!(
-                        "⚠️ Network connection lost during deletion sync, will retry next cycle..."
-                    );
-                } else {
-                    println!("❌ Deletion sync failed: {}", e);
-                }
-            }
-            
             // Save metadata
             self.metadata.last_sync = Some(Utc::now());
             let _ = self.metadata.save_to(&self.metadata_file);
             
-            println!("✅ Sync cycle completed");
+            println!("✅ Sync cycle completed (files preserved on server)");
         }
     }
 
@@ -153,7 +139,7 @@ impl SimpleSyncClient {
         println!("║ 🔗 Server: {:<27} ║", self.metadata.server_url);
         println!("║ 🆔 Your MAC ID: {:<23} ║", client_mac);
         println!("║                                           ║");
-        println!("║ 🔧 WINDOWS TROUBLESHOOTING STEPS:        ║");
+        println!("║ 🔧 TROUBLESHOOTING STEPS:                ║");
         println!("║                                           ║");
         println!("║ 1. Check Windows Firewall settings       ║");
         println!("║    - Open PowerShell as Administrator    ║");
@@ -687,219 +673,10 @@ impl SimpleSyncClient {
         Ok(())
     }
 
-    async fn handle_deletions(&mut self) -> Result<()> {
-        println!("🗑️ Starting bidirectional deletion check...");
-        
-        // Get complete server file structure
-        let mut all_server_files = HashSet::new();
-        if let Err(e) = self.collect_all_server_files(&mut all_server_files).await {
-            if e.to_string().contains("connect") || e.to_string().contains("timeout") {
-                println!("❌ Cannot collect server files due to network issue");
-                return Err(e);
-            }
-            println!("❌ Failed to collect server files: {}", e);
-            return Ok(());
-        }
-        
-        // Get all local files
-        let mut all_local_files = HashSet::new();
-        self.collect_all_local_files(&mut all_local_files);
-        
-        println!("📊 Deletion comparison:");
-        println!("   📄 Server files: {}", all_server_files.len());
-        for file in &all_server_files {
-            println!("      📁 Server: {}", file);
-        }
-        println!("   📄 Local files: {}", all_local_files.len());
-        for file in &all_local_files {
-            println!("      💻 Local: {}", file);
-        }
-        
-        // Handle server deletions (files that exist locally but not on server)
-        let files_to_delete_locally: Vec<_> =
-            all_local_files.difference(&all_server_files).collect();
-        println!(
-            "🗑️ Files to delete locally: {}",
-            files_to_delete_locally.len()
-        );
-        for file_path in files_to_delete_locally {
-            println!("   🗑️ Need to delete locally: {}", file_path);
-            // Only delete if we have metadata (meaning we got it from server originally)
-            if self.metadata.get_file_record(file_path).is_some() {
-                let local_path = self.sync_folder.join(file_path);
-                match fs::remove_file(&local_path).await {
-                    Ok(_) => {
-                        println!("✅ Deleted locally (removed from server): {}", file_path);
-                        self.metadata.remove_file_record(file_path);
-                    }
-                    Err(e) => {
-                        println!("❌ Failed to delete local file {}: {}", file_path, e);
-                    }
-                }
-            } else {
-                println!("   ⏭️ Skipping deletion (no metadata): {}", file_path);
-            }
-        }
-        
-        // Handle client deletions (files that exist on server but not locally)
-        let files_to_delete_on_server: Vec<_> =
-            all_server_files.difference(&all_local_files).collect();
-        println!(
-            "🗑️ Files to delete on server: {}",
-            files_to_delete_on_server.len()
-        );
-        for file_path in files_to_delete_on_server {
-            println!("   🗑️ Need to delete on server: {}", file_path);
-            // Only delete from server if we have metadata (meaning we uploaded it)
-            if self.metadata.get_file_record(file_path).is_some() {
-                println!("   📤 Sending delete request to server for: {}", file_path);
-                if let Err(e) = self.delete_file_on_server(file_path).await {
-                    if e.to_string().contains("connect") || e.to_string().contains("timeout") {
-                        println!(
-                            "   ❌ Server delete failed due to network issue: {}",
-                            file_path
-                        );
-                        return Err(e);
-                    } else {
-                        println!("   ❌ Failed to delete server file {}: {}", file_path, e);
-                    }
-                } else {
-                    println!("   ✅ Deleted from server: {}", file_path);
-                    self.metadata.remove_file_record(file_path);
-                }
-            } else {
-                println!(
-                    "   ⏭️ Skipping server deletion (no metadata): {}",
-                    file_path
-                );
-            }
-        }
-        
-        Ok(())
-    }
-
-    async fn collect_all_server_files(&self, server_files: &mut HashSet<String>) -> Result<()> {
-        // Get root folder contents
-        let url = format!(
-            "{}/api/files?folder=/home/ishank/ORGCenterFolder&mac={}",
-            self.metadata.server_url, self.metadata.client_id
-        );
-        
-        let response =
-            timeout(Duration::from_secs(15), self.http_client.get(&url).send()).await??;
-        
-        if !response.status().is_success() {
-            return Err(anyhow::anyhow!("Server returned: {}", response.status()));
-        }
-        
-        let response_text = response.text().await?;
-        let root_items: Vec<serde_json::Value> = serde_json::from_str(&response_text)?;
-        
-        for item in root_items {
-            if let Some(name) = item["name"].as_str() {
-                let is_file = item["is_file"].as_bool().unwrap_or(false);
-                
-                if is_file {
-                    server_files.insert(name.to_string());
-                } else {
-                    // Explore subfolder
-                    if let Err(e) = self.collect_server_folder_files(name, server_files).await {
-                        println!("❌ Failed to collect files from folder {}: {}", name, e);
-                    }
-                }
-            }
-        }
-        
-        Ok(())
-    }
-
-    async fn collect_server_folder_files(
-        &self,
-        folder_name: &str,
-        server_files: &mut HashSet<String>,
-    ) -> Result<()> {
-        let folder_url = format!(
-            "{}/api/files?folder=/home/ishank/ORGCenterFolder/{}&mac={}",
-            self.metadata.server_url,
-            urlencoding::encode(folder_name),
-            self.metadata.client_id
-        );
-        
-        let response = timeout(
-            Duration::from_secs(15),
-            self.http_client.get(&folder_url).send(),
-        )
-        .await??;
-        
-        if !response.status().is_success() {
-            return Ok(());
-        }
-        
-        let response_text = response.text().await?;
-        let folder_items: Vec<serde_json::Value> = serde_json::from_str(&response_text)?;
-        
-        for item in folder_items {
-            if let Some(file_name) = item["name"].as_str() {
-                if item["is_file"].as_bool() == Some(true) {
-                    let relative_path = format!("{}/{}", folder_name, file_name);
-                    server_files.insert(relative_path);
-                }
-            }
-        }
-        
-        Ok(())
-    }
-
-    fn collect_all_local_files(&self, local_files: &mut HashSet<String>) {
-        for entry in WalkDir::new(&self.sync_folder) {
-            if let Ok(entry) = entry {
-                if entry.file_type().is_file() {
-                    if let Some(filename) = entry.file_name().to_str() {
-                        if filename.starts_with('.') {
-                            continue; // Skip hidden files
-                        }
-                        
-                        if let Ok(relative_path) = entry.path().strip_prefix(&self.sync_folder) {
-                            let path_str = relative_path.to_string_lossy().to_string();
-                            local_files.insert(path_str);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    async fn delete_file_on_server(&self, file_path: &str) -> Result<()> {
-        let delete_url = format!("{}/api/delete-file", self.metadata.server_url);
-        
-        let delete_request = serde_json::json!({
-            "file_path": file_path,
-            "mac": self.metadata.client_id
-        });
-        
-        let response = timeout(
-            Duration::from_secs(15),
-            self.http_client
-                .post(&delete_url)
-                .json(&delete_request)
-                .send(),
-        )
-        .await??;
-        
-        let status = response.status();
-        
-        if status == 401 {
-            return Err(anyhow::anyhow!("Unauthorized delete request"));
-        }
-        
-        if status.is_success() {
-            Ok(())
-        } else {
-            Err(anyhow::anyhow!("Server delete failed: {}", status))
-        }
-    }
+    // ALL DELETION-RELATED FUNCTIONS REMOVED
 }
 
+// Your existing get_mac_address functions remain the same...
 fn get_mac_address() -> Result<String> {
     println!("🔍 Detecting MAC address...");
     
@@ -930,7 +707,38 @@ fn platform_specific_mac_address() -> Result<String> {
     {
         println!("🔍 Trying Windows MAC detection methods...");
         
-        // Method 1: getmac command
+        // Method 1: Enhanced PowerShell - prioritize active, non-virtual adapters
+        if let Ok(output) = Command::new("powershell")
+            .arg("-Command")
+            .arg("(Get-NetAdapter | Where-Object {$_.Status -eq 'Up' -and $_.Virtual -eq $false -and $_.InterfaceDescription -notlike '*Virtual*' -and $_.InterfaceDescription -notlike '*Loopback*' -and $_.InterfaceDescription -notlike '*Bluetooth*'} | Sort-Object InterfaceIndex | Select-Object -First 1).MacAddress")
+            .output() 
+        {
+            if output.status.success() {
+                let mac_output = String::from_utf8_lossy(&output.stdout);
+                let mac = mac_output.trim().replace("-", ":").to_lowercase();
+                if mac.len() == 17 && mac != "00:00:00:00:00:00" && !mac.is_empty() {
+                    println!("✅ Found MAC via Enhanced PowerShell: {}", mac);
+                    return Ok(mac);
+                }
+            }
+        }
+        
+        // Method 2: Standard PowerShell fallback
+        if let Ok(output) = Command::new("powershell")
+            .arg("-Command")
+            .arg("Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | Select-Object -First 1 -ExpandProperty MacAddress")
+            .output() {
+            if output.status.success() {
+                let mac_output = String::from_utf8_lossy(&output.stdout);
+                let mac = mac_output.trim().replace("-", ":").to_lowercase();
+                if mac.len() == 17 && mac != "00:00:00:00:00:00" && !mac.is_empty() {
+                    println!("✅ Found MAC via PowerShell: {}", mac);
+                    return Ok(mac);
+                }
+            }
+        }
+        
+        // Method 3: getmac command with better parsing
         if let Ok(output) = Command::new("getmac")
             .arg("/fo")
             .arg("csv")
@@ -941,33 +749,68 @@ fn platform_specific_mac_address() -> Result<String> {
                 let mac_output = String::from_utf8_lossy(&output.stdout);
                 println!("📋 getmac output: {}", mac_output.trim());
                 
+                // Parse CSV output and find first valid MAC
                 for line in mac_output.lines() {
-                    if let Some(mac) = line.split(',').next() {
-                        let clean_mac = mac.trim_matches('"').replace("-", ":").to_lowercase(); // FIXED: Always lowercase
-                        if clean_mac.len() == 17
-                            && clean_mac != "00:00:00:00:00:00"
-                            && !clean_mac.contains("n/a")
-                        {
-                            println!("✅ Found MAC via getmac: {}", clean_mac);
-                            return Ok(clean_mac);
+                    let fields: Vec<&str> = line.split(',').collect();
+                    if fields.len() >= 1 {
+                        if let Some(mac_field) = fields.get(0) {
+                            let mac = mac_field.trim_matches('"').trim();
+                            if !mac.is_empty() && mac.to_lowercase() != "n/a" {
+                                let clean_mac = mac.replace("-", ":").to_lowercase();
+                                if clean_mac.len() == 17 && clean_mac != "00:00:00:00:00:00" {
+                                    println!("✅ Found MAC via getmac: {}", clean_mac);
+                                    return Ok(clean_mac);
+                                }
+                            }
                         }
                     }
                 }
             }
         }
         
-        // Method 2: ipconfig /all
+        // Method 4: ipconfig /all with improved parsing
         if let Ok(output) = Command::new("ipconfig").arg("/all").output() {
             if output.status.success() {
                 let output_str = String::from_utf8_lossy(&output.stdout);
                 println!("🔍 Parsing ipconfig output...");
                 
-                for line in output_str.lines() {
+                let lines: Vec<&str> = output_str.lines().collect();
+                let mut current_adapter = "";
+                let mut found_active_adapter = false;
+                
+                for (i, line) in lines.iter().enumerate() {
+                    // Track current adapter
+                    if line.contains("adapter ") && line.ends_with(":") {
+                        current_adapter = line;
+                        found_active_adapter = false;
+                    }
+                    
+                    // Check if adapter is active (has IP address)
+                    if line.contains("IPv4 Address") && line.contains("Preferred") {
+                        found_active_adapter = true;
+                    }
+                    
+                    // Extract MAC address for active adapters
+                    if (line.contains("Physical Address") || line.contains("Physische Adresse")) && found_active_adapter {
+                        if let Some(colon_pos) = line.find(':') {
+                            let mac_part = &line[colon_pos + 1..];
+                            let mac = mac_part.trim().replace("-", ":").to_lowercase();
+                            if mac.len() == 17 && mac != "00:00:00:00:00:00" && !mac.is_empty() {
+                                println!("✅ Found MAC via ipconfig ({}): {}", current_adapter.trim(), mac);
+                                return Ok(mac);
+                            }
+                        }
+                    }
+                }
+                
+                // Fallback: any valid MAC address
+                for line in lines {
                     if line.contains("Physical Address") || line.contains("Physische Adresse") {
-                        if let Some(mac_part) = line.split(':').nth(1) {
-                            let mac = mac_part.trim().replace("-", ":").to_lowercase(); // FIXED: Always lowercase
-                            if mac.len() == 17 && mac != "00:00:00:00:00:00" {
-                                println!("✅ Found MAC via ipconfig: {}", mac);
+                        if let Some(colon_pos) = line.find(':') {
+                            let mac_part = &line[colon_pos + 1..];
+                            let mac = mac_part.trim().replace("-", ":").to_lowercase();
+                            if mac.len() == 17 && mac != "00:00:00:00:00:00" && !mac.is_empty() {
+                                println!("✅ Found MAC via ipconfig (fallback): {}", mac);
                                 return Ok(mac);
                             }
                         }
@@ -976,17 +819,35 @@ fn platform_specific_mac_address() -> Result<String> {
             }
         }
         
-        // Method 3: PowerShell
-        if let Ok(output) = Command::new("powershell")
-            .arg("-Command")
-            .arg("Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | Select-Object -First 1 -ExpandProperty MacAddress")
-            .output() {
+        // Method 5: wmic command fallback
+        if let Ok(output) = Command::new("wmic")
+            .arg("path")
+            .arg("Win32_NetworkAdapter")
+            .arg("where")
+            .arg("NetConnectionStatus=2")
+            .arg("get")
+            .arg("MACAddress")
+            .arg("/format:csv")
+            .output()
+        {
             if output.status.success() {
-                let mac_output = String::from_utf8_lossy(&output.stdout);
-                let mac = mac_output.trim().replace("-", ":").to_lowercase(); // FIXED: Always lowercase
-                if mac.len() == 17 && mac != "00:00:00:00:00:00" {
-                    println!("✅ Found MAC via PowerShell: {}", mac);
-                    return Ok(mac);
+                let output_str = String::from_utf8_lossy(&output.stdout);
+                println!("🔍 Parsing wmic output...");
+                
+                for line in output_str.lines().skip(1) { // Skip header
+                    let fields: Vec<&str> = line.split(',').collect();
+                    if fields.len() >= 2 {
+                        if let Some(mac_field) = fields.get(1) {
+                            let mac = mac_field.trim();
+                            if !mac.is_empty() {
+                                let clean_mac = mac.replace(":", ":").to_lowercase();
+                                if clean_mac.len() == 17 && clean_mac != "00:00:00:00:00:00" {
+                                    println!("✅ Found MAC via wmic: {}", clean_mac);
+                                    return Ok(clean_mac);
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -1001,7 +862,7 @@ fn platform_specific_mac_address() -> Result<String> {
             let path = format!("/sys/class/net/{}/address", interface);
             if let Ok(output) = Command::new("cat").arg(&path).output() {
                 if output.status.success() {
-                    let mac = String::from_utf8(output.stdout)?.trim().to_string().to_lowercase(); // FIXED: Always lowercase
+                    let mac = String::from_utf8(output.stdout)?.trim().to_string().to_lowercase();
                     if !mac.is_empty() && mac != "00:00:00:00:00:00" {
                         println!("✅ Found MAC via {}: {}", interface, mac);
                         return Ok(mac);
@@ -1018,10 +879,13 @@ fn platform_specific_mac_address() -> Result<String> {
                     let output_str = String::from_utf8_lossy(&output.stdout);
                     for line in output_str.lines() {
                         if line.trim().starts_with("ether ") {
-                            let mac = line.trim().replace("ether ", "").trim().to_string().to_lowercase(); // FIXED: Always lowercase
-                            if mac.len() == 17 && mac != "00:00:00:00:00:00" {
-                                println!("✅ Found MAC via ifconfig: {}", mac);
-                                return Ok(mac);
+                            let parts: Vec<&str> = line.trim().split_whitespace().collect();
+                            if parts.len() >= 2 {
+                                let mac = parts[1].to_lowercase();
+                                if mac.len() == 17 && mac != "00:00:00:00:00:00" {
+                                    println!("✅ Found MAC via ifconfig: {}", mac);
+                                    return Ok(mac);
+                                }
                             }
                         }
                     }

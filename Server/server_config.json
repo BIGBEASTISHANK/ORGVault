@@ -6,15 +6,27 @@
       "allowed_folders": [
         "/home/ishank/ORGCenterFolder/Marketing Team",
         "/home/ishank/ORGCenterFolder/Design Team",
+        "/home/ishank/ORGCenterFolder/RND Team",
         "/home/ishank/ORGCenterFolder/Development Team"
       ],
       "can_read_files": true,
       "is_admin": true
+    },
+    "c4:c6:e6:14:5e:7a": {
+      "mac_address": "c4:c6:e6:14:5e:7a",
+      "username": "hbsingh",
+      "allowed_folders": [
+        "/home/ishank/ORGCenterFolder/RND Team",
+        "/home/ishank/ORGCenterFolder/Development Team"
+      ],
+      "can_read_files": true,
+      "is_admin": false
     }
   },
   "available_folders": [
     "/home/ishank/ORGCenterFolder/Marketing Team",
     "/home/ishank/ORGCenterFolder/Design Team",
+    "/home/ishank/ORGCenterFolder/RND Team",
     "/home/ishank/ORGCenterFolder/Development Team"
   ],
   "folder_structure": {
@@ -22,15 +34,25 @@
     "path": "/home/ishank/ORGCenterFolder",
     "is_dir": true,
     "size": null,
-    "modified": "SystemTime { tv_sec: 1757362895, tv_nsec: 739284526 }",
+    "modified": "SystemTime { tv_sec: 1757365744, tv_nsec: 920328208 }",
     "children": [
       {
         "name": "Marketing Team",
         "path": "/home/ishank/ORGCenterFolder/Marketing Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757362895, tv_nsec: 739284526 }",
-        "children": null,
+        "modified": "SystemTime { tv_sec: 1757363761, tv_nsec: 147066502 }",
+        "children": [
+          {
+            "name": "emptyTestFile.txt",
+            "path": "/home/ishank/ORGCenterFolder/Marketing Team/emptyTestFile.txt",
+            "is_dir": false,
+            "size": 0,
+            "modified": "SystemTime { tv_sec: 1757363761, tv_nsec: 147066502 }",
+            "children": null,
+            "content": null
+          }
+        ],
         "content": null
       },
       {
@@ -38,14 +60,14 @@
         "path": "/home/ishank/ORGCenterFolder/Design Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757343658, tv_nsec: 938336562 }",
+        "modified": "SystemTime { tv_sec: 1757363753, tv_nsec: 702046531 }",
         "children": [
           {
-            "name": "test.html",
-            "path": "/home/ishank/ORGCenterFolder/Design Team/test.html",
+            "name": "emptyTestFile.txt",
+            "path": "/home/ishank/ORGCenterFolder/Design Team/emptyTestFile.txt",
             "is_dir": false,
-            "size": 28,
-            "modified": "SystemTime { tv_sec: 1757343643, tv_nsec: 325200721 }",
+            "size": 0,
+            "modified": "SystemTime { tv_sec: 1757363753, tv_nsec: 702046531 }",
             "children": null,
             "content": null
           }
@@ -53,27 +75,26 @@
         "content": null
       },
       {
+        "name": "RND Team",
+        "path": "/home/ishank/ORGCenterFolder/RND Team",
+        "is_dir": true,
+        "size": null,
+        "modified": "SystemTime { tv_sec: 1757365744, tv_nsec: 920328208 }",
+        "children": null,
+        "content": null
+      },
+      {
         "name": "Development Team",
         "path": "/home/ishank/ORGCenterFolder/Development Team",
         "is_dir": true,
         "size": null,
-        "modified": "SystemTime { tv_sec: 1757362754, tv_nsec: 165543665 }",
-        "children": [
-          {
-            "name": "secret.txt",
-            "path": "/home/ishank/ORGCenterFolder/Development Team/secret.txt",
-            "is_dir": false,
-            "size": 1001,
-            "modified": "SystemTime { tv_sec: 1757362754, tv_nsec: 165543665 }",
-            "children": null,
-            "content": null
-          }
-        ],
+        "modified": "SystemTime { tv_sec: 1757365691, tv_nsec: 460352124 }",
+        "children": null,
         "content": null
       }
     ],
     "content": null
   },
-  "last_scan": "2025-09-08T20:33:27.400872153+00:00",
+  "last_scan": "2025-09-08T21:09:21.106157637+00:00",
   "encryption_key": "askjkldjfslkasjdfkl"
 }
