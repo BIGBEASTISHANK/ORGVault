@@ -10,12 +10,13 @@
     <div class="container">
         <div class="header">
             <h1>🔒 Secure Data Vault</h1>
-            <p>Authenticated Access • Server: 192.168.1.2:7878</p>
+            <p>Encrypted File Access • Server: 192.168.1.2:7878</p>
         </div>
         
         <div class="controls">
             <button class="btn btn-primary" onclick="loadFolders()">🔄 Refresh</button>
             <button class="btn btn-info" onclick="showMacInfo()">🔍 Show MAC Info</button>
+            <button class="btn btn-warning" onclick="showEncryptionKey()">🔑 Set Encryption Key</button>
             <div class="status-info">
                 <div class="mac-display" id="mac-display">MAC: Detecting...</div>
                 <div class="status-indicator" id="status">🔴 Connecting...</div>
@@ -29,13 +30,30 @@
                     <div class="loading">Loading your folder structure...</div>
                 </div>
             </div>
-            <div class="file-viewer">
+            <div class="file-panel">
                 <div class="file-header">
-                    <h3>📄 File Viewer</h3>
+                    <h3 id="current-folder">📁 Select a folder</h3>
+                    <div class="file-actions">
+                        <input type="file" id="file-upload" style="display: none" onchange="uploadFile()">
+                        <button class="btn btn-success" onclick="document.getElementById('file-upload').click()">📤 Upload File</button>
+                    </div>
                 </div>
-                <div id="file-content" class="file-content">
-                    Select a file from the folder tree to view its contents.
+                <div id="file-list" class="file-list">
+                    Select a folder to view files
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Encryption Key Modal -->
+    <div id="key-modal" class="modal">
+        <div class="modal-content">
+            <h3>🔑 Set Encryption Key</h3>
+            <p>Enter your encryption passphrase:</p>
+            <input type="password" id="encryption-key" placeholder="Enter encryption passphrase">
+            <div class="modal-actions">
+                <button class="btn btn-primary" onclick="setEncryptionKey()">Set Key</button>
+                <button class="btn btn-secondary" onclick="closeKeyModal()">Cancel</button>
             </div>
         </div>
     </div>

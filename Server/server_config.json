@@ -1,6 +1,6 @@
 {
   "root_path": "/home/ishank/ORGCenterFolder",
-  "last_scan": "2025-09-08T13:24:01.344149471+00:00",
+  "last_scan": "2025-09-08T14:07:35.350033554+00:00",
   "folder_structure": {
     "name": "ORGCenterFolder",
     "path": "/home/ishank/ORGCenterFolder",
@@ -40,6 +40,16 @@
     "content": null
   },
   "mac_permissions": {
+    "f8:fe:5e:6b:69:fd": {
+      "mac_address": "f8:fe:5e:6b:69:fd",
+      "username": "HB",
+      "allowed_folders": [
+        "/home/ishank/ORGCenterFolder/Design Team",
+        "/home/ishank/ORGCenterFolder/Development Team"
+      ],
+      "can_read_files": true,
+      "is_admin": false
+    },
     "24:6a:0e:11:82:96": {
       "mac_address": "24:6a:0e:11:82:96",
       "username": "ServerAdmin",
@@ -48,15 +58,6 @@
       ],
       "can_read_files": true,
       "is_admin": true
-    },
-    "f8:fe:5e:6b:69:fd": {
-      "mac_address": "f8:fe:5e:6b:69:fd",
-      "username": "HB Singh",
-      "allowed_folders": [
-        "/home/ishank/ORGCenterFolder/Design Team"
-      ],
-      "can_read_files": true,
-      "is_admin": false
     }
   },
   "available_folders": [
