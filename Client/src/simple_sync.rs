@@ -5,6 +5,7 @@ use anyhow::Result;
 use chrono::Utc;
 use walkdir::WalkDir;
 use std::collections::HashSet;
+use mac_address;
 
 use crate::metadata::{SyncMetadata, FileRecord, calculate_checksum};
 use crate::encryption::Encryptor;
@@ -28,7 +29,17 @@ impl SimpleSyncClient {
             metadata.server_url = "http://192.168.1.2:8080".to_string();
         }
         if metadata.client_id.is_empty() {
-            metadata.client_id = get_mac_address().unwrap_or_else(|_| "default-client".to_string());
+            metadata.client_id = match get_mac_address() {
+                Ok(mac) => {
+                    println!("🆔 Using MAC address as client ID: {}", mac);
+                    mac
+                }
+                Err(e) => {
+                    println!("⚠️ Failed to get MAC address: {}", e);
+                    println!("🆔 Using default client ID");
+                    "default-client".to_string()
+                }
+            };
         }
         if metadata.encryption_key.is_none() {
             metadata.encryption_key = Some("shared-vault-key-2025".to_string());
@@ -127,26 +138,38 @@ impl SimpleSyncClient {
     }
 
     fn display_network_error(&self) {
+        let client_mac = get_mac_address().unwrap_or_else(|_| "unknown".to_string());
+        
         println!("\n╔═══════════════════════════════════════════╗");
         println!("║           🌐 NETWORK CONNECTION ERROR      ║");
         println!("╠═══════════════════════════════════════════╣");
         println!("║ Cannot connect to the sync server         ║");
         println!("║                                           ║");
         println!("║ 🔗 Server: {:<27} ║", self.metadata.server_url);
-        println!("║ 🆔 Your Device ID: {:<19} ║", self.metadata.client_id);
+        println!("║ 🆔 Your MAC ID: {:<23} ║", client_mac);
         println!("║                                           ║");
-        println!("║ 🔧 TROUBLESHOOTING STEPS:                ║");
+        println!("║ 🔧 WINDOWS TROUBLESHOOTING STEPS:        ║");
         println!("║                                           ║");
-        println!("║ 1. Check if server is running            ║");
-        println!("║ 2. Verify network connectivity           ║");
-        println!("║ 3. Check firewall settings               ║");
-        println!("║ 4. Ensure correct server IP address      ║");
+        println!("║ 1. Check Windows Firewall settings       ║");
+        println!("║    - Open PowerShell as Administrator    ║");
+        println!("║    - Run: wf.msc                         ║");
+        println!("║    - Add rule for port 8080 (TCP In/Out) ║");
         println!("║                                           ║");
-        println!("║ 📧 IF SERVER IS RUNNING:                 ║");
-        println!("║ Contact your administrator and provide   ║");
-        println!("║ your device ID shown above to be added   ║");
-        println!("║ to the allowed devices list.             ║");
+        println!("║ 2. Test connection with PowerShell:      ║");
+        println!("║    Test-NetConnection -Computer {} ║", "192.168.1.2");
+        println!("║    -Port 8080                            ║");
+        println!("║                                           ║");
+        println!("║ 3. Verify server is running on:          ║");
+        println!("║    http://192.168.1.2:8080               ║");
+        println!("║                                           ║");
+        println!("║ 📧 IF SERVER IS ACCESSIBLE:              ║");
+        println!("║ Contact admin with your MAC ID above     ║");
+        println!("║ to be added to allowed devices.          ║");
         println!("╚═══════════════════════════════════════════╝\n");
+        
+        println!("💡 Quick PowerShell commands to fix firewall:");
+        println!("   New-NetFirewallRule -DisplayName \"Allow 8080\" -Direction Inbound -Protocol TCP -LocalPort 8080 -Action Allow");
+        println!("   Test-NetConnection -ComputerName 192.168.1.2 -Port 8080");
     }
 
     async fn test_server_connection(&self) -> Result<()> {
@@ -199,20 +222,21 @@ impl SimpleSyncClient {
                     return Err(anyhow::anyhow!("Device not registered. MAC: {}", mac));
                 } else {
                     // Generic unauthorized error
+                    let client_mac = get_mac_address().unwrap_or_else(|_| "unknown".to_string());
                     println!("\n╔═══════════════════════════════════════════╗");
                     println!("║           ❌ ACCESS DENIED                 ║");
                     println!("╠═══════════════════════════════════════════╣");
                     println!("║ Your device is not authorized              ║");
                     println!("║                                           ║");
-                    println!("║ 🆔 Your Device ID: {:<19} ║", self.metadata.client_id);
+                    println!("║ 🆔 Your MAC Address: {:<19} ║", client_mac);
                     println!("║                                           ║");
                     println!("║ 📬 PLEASE CONTACT YOUR ADMINISTRATOR     ║");
-                    println!("║ and provide them with your device ID     ║");
+                    println!("║ and provide them with your MAC address   ║");
                     println!("║ shown above so they can add your device  ║");
                     println!("║ to the server's allowed devices list.    ║");
                     println!("╚═══════════════════════════════════════════╝\n");
                     
-                    return Err(anyhow::anyhow!("Device not registered. ID: {}", self.metadata.client_id));
+                    return Err(anyhow::anyhow!("Device not registered. MAC: {}", client_mac));
                 }
             }
         }
@@ -263,7 +287,8 @@ impl SimpleSyncClient {
                     println!("║ 📞 Contact your administrator to add     ║");
                     println!("║ your device to the allowed list.         ║");
                 } else {
-                    println!("║ Your Device ID: {:<25} ║", self.metadata.client_id);
+                    let client_mac = get_mac_address().unwrap_or_else(|_| "unknown".to_string());
+                    println!("║ Your MAC Address: {:<23} ║", client_mac);
                     println!("║                                           ║");
                     println!("║ 📞 Contact your administrator to add     ║");
                     println!("║ your device to the allowed list.         ║");
@@ -786,18 +811,46 @@ impl SimpleSyncClient {
 }
 
 fn get_mac_address() -> Result<String> {
+    println!("🔍 Detecting MAC address...");
+    
+    // Try using the mac_address crate first (cross-platform)
+    match mac_address::get_mac_address() {
+        Ok(Some(ma)) => {
+            let mac_str = ma.to_string();
+            println!("✅ MAC address detected via mac_address crate: {}", mac_str);
+            return Ok(mac_str);
+        }
+        Ok(None) => {
+            println!("⚠️ No MAC address found via mac_address crate");
+        }
+        Err(e) => {
+            println!("⚠️ MAC address crate failed: {}", e);
+        }
+    }
+    
+    // Fallback to platform-specific methods
+    println!("🔄 Trying platform-specific MAC detection...");
+    platform_specific_mac_address()
+}
+
+fn platform_specific_mac_address() -> Result<String> {
     use std::process::Command;
     
-    // Try Windows first
     #[cfg(target_os = "windows")]
     {
+        println!("🔍 Trying Windows MAC detection methods...");
+        
+        // Method 1: getmac command
         if let Ok(output) = Command::new("getmac").arg("/fo").arg("csv").arg("/nh").output() {
             if output.status.success() {
                 let mac_output = String::from_utf8_lossy(&output.stdout);
+                println!("📋 getmac output: {}", mac_output.trim());
+                
                 for line in mac_output.lines() {
                     if let Some(mac) = line.split(',').next() {
                         let clean_mac = mac.trim_matches('"').replace('-', ':').to_lowercase();
-                        if clean_mac.len() == 17 && clean_mac != "00:00:00:00:00:00" {
+                        if clean_mac.len() == 17 && clean_mac != "00:00:00:00:00:00" && !clean_mac.contains("n/a") {
+                            println!("✅ Found MAC via getmac: {}", clean_mac);
                             return Ok(clean_mac);
                         }
                     }
@@ -805,15 +858,18 @@ fn get_mac_address() -> Result<String> {
             }
         }
         
-        // Fallback for Windows - use ipconfig
+        // Method 2: ipconfig /all
         if let Ok(output) = Command::new("ipconfig").arg("/all").output() {
             if output.status.success() {
                 let output_str = String::from_utf8_lossy(&output.stdout);
+                println!("🔍 Parsing ipconfig output...");
+                
                 for line in output_str.lines() {
                     if line.contains("Physical Address") || line.contains("Physische Adresse") {
                         if let Some(mac_part) = line.split(':').nth(1) {
                             let mac = mac_part.trim().replace('-', ':').to_lowercase();
                             if mac.len() == 17 && mac != "00:00:00:00:00:00" {
+                                println!("✅ Found MAC via ipconfig: {}", mac);
                                 return Ok(mac);
                             }
                         }
@@ -821,11 +877,27 @@ fn get_mac_address() -> Result<String> {
                 }
             }
         }
+        
+        // Method 3: PowerShell
+        if let Ok(output) = Command::new("powershell")
+            .arg("-Command")
+            .arg("Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | Select-Object -First 1 -ExpandProperty MacAddress")
+            .output() {
+            if output.status.success() {
+                let mac_output = String::from_utf8_lossy(&output.stdout);
+                let mac = mac_output.trim().replace('-', ':').to_lowercase();
+                if mac.len() == 17 && mac != "00:00:00:00:00:00" {
+                    println!("✅ Found MAC via PowerShell: {}", mac);
+                    return Ok(mac);
+                }
+            }
+        }
     }
     
-    // Try Linux/macOS
     #[cfg(any(target_os = "linux", target_os = "macos"))]
     {
+        println!("🔍 Trying Unix MAC detection methods...");
+        
         let interfaces = ["eno1", "eth0", "wlo1", "wlan0", "en0", "en1"];
         for interface in &interfaces {
             let path = format!("/sys/class/net/{}/address", interface);
@@ -833,6 +905,7 @@ fn get_mac_address() -> Result<String> {
                 if output.status.success() {
                     let mac = String::from_utf8(output.stdout)?.trim().to_string();
                     if !mac.is_empty() && mac != "00:00:00:00:00:00" {
+                        println!("✅ Found MAC via {}: {}", interface, mac);
                         return Ok(mac);
                     }
                 }
@@ -849,6 +922,7 @@ fn get_mac_address() -> Result<String> {
                         if line.trim().starts_with("ether ") {
                             let mac = line.trim().replace("ether ", "").trim().to_string();
                             if mac.len() == 17 && mac != "00:00:00:00:00:00" {
+                                println!("✅ Found MAC via ifconfig: {}", mac);
                                 return Ok(mac);
                             }
                         }
