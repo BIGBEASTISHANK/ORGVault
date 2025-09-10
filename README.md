@@ -69,17 +69,5 @@ The Next-Gen Desktop Based Secure Data Vault is a cross-platform desktop applica
 ## Future Enhancements
 
 - Extend cross-platform support to Windows and macOS.
-- Implement end-to-end encryption for synchronization traffic.
 - Add more granular user activity monitoring and alerting.
-- Integrate email notifications and advanced reporting dashboards.
-
----
-
-## 👥 Credits
-Special thanks to the amazing team behind COSMIC EXPLORER:
- 
-👨‍💻 [HB Singh Chaudhary (M4YH3M-DEV)](https://github.com/M4YH3M-DEV/) 
- 
-👨‍💻 [BIGBEASTISHANK (Pranjal)](https://bigbeastishank.com/) 
-
----
+- Integrate desktop notifications and advanced reporting dashboards.
