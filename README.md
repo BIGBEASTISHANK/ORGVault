@@ -1,4 +1,7 @@
-# Next-Gen Desktop Based Secure Data Vault
+# ORGVault V1
+
+> [!Important]
+> Developement of this project has been transfered to [BBICorporation/ORGVault](https://github.com/BBICorporation/ORGVault)
 
 ## Project Overview
 
